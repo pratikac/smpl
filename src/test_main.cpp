@@ -91,10 +91,11 @@ int main()
 #else
 
 #include "dubins.h"
+#include "system.h"
 
 int main()
 {
-  dubins_t dubins;
+  dubins_c dubins;
   return 0;
 }
 #endif

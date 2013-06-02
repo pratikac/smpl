@@ -11,28 +11,28 @@ using namespace std;
 #define SQ(x)   ((x)*(x))
 
 template<size_t N>
-class state_t
+class state_c
 {
   public:
     float x[N];
     const static size_t dim = N;
 
-    state_t()
+    state_c()
     {
       for(size_t i=0; i<N; i++)
         x[i] = 0;
     }
-    state_t(const state_t& s)
+    state_c(const state_c& s)
     {
       for(size_t i=0; i<N; i++)
         x[i] = s.x[i];
     }
-    state_t(const float* sin)
+    state_c(const float* sin)
     {
       for(size_t i=0; i<N; i++)
         x[i] = sin[i];
     }
-    state_t& operator=(const state_t& sin)
+    state_c& operator=(const state_c& sin)
     {
       if(this == &sin)
         return *this;
@@ -41,7 +41,10 @@ class state_t
       return *this;
     }
     
-    float operator[](const size_t i) const {return x[i];}
+    float operator[](const size_t i) const 
+    {
+      return x[i];
+    }
     
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const
     {
@@ -57,7 +60,7 @@ class state_t
       return os;
     }
     
-    float dist(const state_t& s, bool only_xy=false) const
+    float dist(const state_c& s, bool only_xy=false) const
     {
       size_t len = N;
       if(only_xy)
@@ -70,27 +73,27 @@ class state_t
 };
 
 template<size_t M>
-class control_t : public state_t<M>
+class control_c : public state_c<M>
 {
   public:
-    control_t() : state_t<M>() {}
-    control_t(const control_t& c) : state_t<M>(c) {};
-    control_t(const float* cin) : state_t<M>(cin) {};
+    control_c() : state_c<M>() {}
+    control_c(const control_c& c) : state_c<M>(c) {};
+    control_c(const float* cin) : state_c<M>(cin) {};
 };
 
-template<class s_t, class c_t>
-class trajectory_t
+template<class state_t, class control_t>
+class trajectory_c
 {
   public:
-    vector<s_t> states;
-    vector<c_t> controls;
+    vector<state_t> states;
+    vector<control_t> controls;
     float total_variation;
      
-    trajectory_t() : total_variation(0){}
+    trajectory_c() : total_variation(0){}
     
     // does not clear memory, explicitly
     // call trajectory.clear() to deallocate memory
-    ~trajectory_t(){}
+    ~trajectory_c(){}
     int clear()
     {
       total_variation = 0;
@@ -100,11 +103,11 @@ class trajectory_t
     }
     int pop_front(int how_many)
     {
-      states = vector<s_t>(states.begin()+how_many, states.end());
-      controls = vector<s_t>(controls.begin()+how_many, controls.end());
+      states = vector<state_t>(states.begin()+how_many, states.end());
+      controls = vector<control_t>(controls.begin()+how_many, controls.end());
       return 0;
     }
-    int append(trajectory_t& t2)
+    int append(trajectory_c& t2)
     {
       total_variation += t2.total_variation;
       states.insert(states.end(), t2.states.begin(), t2.states.end());
@@ -139,19 +142,20 @@ class trajectory_t
     }
 };
 
-class optimization_data_t
+class optimization_data_c
 {
   public:
-    virtual ~optimization_data_t(){};
+    virtual ~optimization_data_c(){};
 };
 
-template<class s_t, class c_t, class opt_data_t>
-class dynamical_system_t
+template<class state_tt, class control_tt, class opt_data_tt>
+class dynamical_system_c
 {
   public:
-    typedef trajectory_t<s_t, c_t> traj_t;
-    typedef s_t state_t;
-    typedef c_t control_t;
+    typedef state_tt state_t;
+    typedef control_tt control_t;
+    typedef opt_data_tt opt_data_t;
+    typedef trajectory_c<state_t, control_t> trajectory_t;
 
     int modulo_mpi_pi(float& th)
     {
@@ -170,8 +174,8 @@ class dynamical_system_t
       return 0;
     }
     
-    virtual int extend_to(const s_t* si, const s_t* sf, traj_t& traj, opt_data_t* opt_data)=0;
-    virtual float evaluate_extend_cost(const s_t* si, const s_t* sf, opt_data_t*& opt_data)=0;
+    virtual int extend_to(const state_t* si, const state_t* sf, trajectory_t& traj, opt_data_t* opt_data)=0;
+    virtual float evaluate_extend_cost(const state_t* si, const state_t* sf, opt_data_t*& opt_data)=0;
 };
 
 #endif

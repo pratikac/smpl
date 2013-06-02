@@ -11,18 +11,18 @@ using namespace std;
 
 
 template<size_t N>
-class region_t
+class region_c
 {
   public:
     float s[N];
     float c[N];
 
-    region_t()
+    region_c()
     {
       for(size_t i=0; i<N; i++)
         s[i] = c[i] = 0;
     }
-    region_t(const float* cin, const float* sin)
+    region_c(const float* cin, const float* sin)
     {
       for(size_t i=0; i< N; i++)
       {
@@ -30,7 +30,7 @@ class region_t
         c[i] = cin[i];
       }
     }
-    bool is_inside(const state_t<N>& sin) const
+    bool is_inside(const state_c<N>& sin) const
     {
       for(size_t i=0; i<N; i++)
       {
@@ -42,36 +42,36 @@ class region_t
 };
 
 // generic cost structure
-class cost_t
+class cost_c
 {
   public:
     float val;
-    cost_t() : val(FLT_MAX){}
-    cost_t(float xin) : val(xin) {}
-    cost_t(const cost_t& c2) : val(c2.val){}
+    cost_c() : val(FLT_MAX){}
+    cost_c(float xin) : val(xin) {}
+    cost_c(const cost_c& c2) : val(c2.val){}
     
-    virtual ~cost_t(){
+    virtual ~cost_c(){
     }
-    virtual cost_t& operator+=(const cost_t& rhs)
+    virtual cost_c& operator+=(const cost_c& rhs)
     {
       val += rhs.val;
       return *this;
     }
-    virtual cost_t operator+(const cost_t& c2) const
+    virtual cost_c operator+(const cost_c& c2) const
     {
-      cost_t toret = *this;
+      cost_c toret = *this;
       toret.val += c2.val;
       return toret;
     }
-    virtual bool operator<(const cost_t& rhs) const
+    virtual bool operator<(const cost_c& rhs) const
     {
       return (val < rhs.val);
     }
-    virtual bool operator>(const cost_t& rhs) const
+    virtual bool operator>(const cost_c& rhs) const
     {
       return (val > rhs.val);
     }
-    virtual float difference(const cost_t& c2) const
+    virtual float difference(const cost_c& c2) const
     {
       return fabs(val-c2.val);
     }
@@ -86,24 +86,28 @@ class cost_t
     }
 };
 
-template<class dynamical_system_t, class map_t>
-class system_t
+template<class dynamical_system_tt, class map_tt, class cost_tt>
+class system_c
 {
   public:
-    typedef dynamical_system_t::s_t s_t;
-    typedef dynamical_system_t::c_t c_t;
-    typedef dynamical_system_t::opt_data_t opt_data_t;
-    typedef dynamical_system_t::traj_t traj_t;
-    typedef state_t::N N;
+    typedef dynamical_system_tt dynamical_system_t;
+    typedef map_tt map_t;
+    typedef cost_tt cost_t;
+
+    typedef typename dynamical_system_t::state_t state;
+    typedef typename dynamical_system_t::control_t control;
+    typedef typename dynamical_system_t::opt_data_t opt_data_t;
+    typedef typename dynamical_system_t::trajectory_t trajectory;
+    const static size_t N = dynamical_system_t::state_t::N;
 
     map_t* obstacle_map;
-    dynamical_system_t<s_t, c_t, opt_data_t>* dynamical_system;
+    dynamical_system_t* dynamical_system;
 
-    region_t<N> operating_region;
-    region_t<N> goal_region;
+    region_c<N> operating_region;
+    region_c<N> goal_region;
 
-    system_t(){};
-    ~system_t(){}
+    system_c(){};
+    ~system_c(){}
 
     virtual int get_key(const state& s, float* key)
     {
@@ -174,7 +178,7 @@ class system_t
         xout[i] = xin[i];
       return 0;
     }
-    virtual bool is_safe_trajectory(const trajectory_t& traj)
+    virtual bool is_safe_trajectory(const trajectory& traj)
     {
       if(traj.states.empty())
         return true;
@@ -196,7 +200,7 @@ class system_t
       return true;
     }
 
-    virtual int extend_to(const state* si, const state* sf, bool check_obstacles, trajectory_t& traj, optimization_data_t* opt_data)
+    virtual int extend_to(const state* si, const state* sf, bool check_obstacles, trajectory& traj, opt_data_t* opt_data)
     {
       int res = dynamical_system->extend_to(si, sf, traj, opt_data);
       if(res)
@@ -217,7 +221,7 @@ class system_t
       return res;
     }
 
-    virtual cost_t* evaluate_extend_cost(const state* si, const state* sf, optimization_data_t*& opt_data)
+    virtual cost_t* evaluate_extend_cost(const state* si, const state* sf, opt_data_t*& opt_data)
     {
       float total_variation = dynamical_system->evaluate_extend_cost(si, sf, opt_data);
       return new cost_t(total_variation);
@@ -228,7 +232,7 @@ class system_t
       return obstacle_map->get_state_cost(s.x);
     };
 
-    virtual cost_t evaluate_trajectory_cost(trajectory_t& traj)
+    virtual cost_t evaluate_trajectory_cost(trajectory& traj)
     {
       float c=0;
       for(auto& ps : traj.states)
@@ -246,7 +250,7 @@ class system_t
 
     void test_extend_to()
     {
-      trajectory_t traj;
+      trajectory traj;
       float zero[3] ={0};
       state origin(zero);
       for(int i=0; i<10; i++)
