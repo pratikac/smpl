@@ -1,0 +1,22 @@
+<package>
+  <description brief="rrts_corep">
+
+     rrts_corep
+
+  </description>
+  <author>Valerio</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/rrts_core</url>
+
+  <depend package="rosconsole"/>
+  <depend package="roscpp"/>
+  <depend package="rospy" />
+  <depend package="tf" />
+
+  <export>
+    <cpp cflags="-I${prefix}/src/" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -lrrts_corep"/>
+  </export>
+
+</package>
+
