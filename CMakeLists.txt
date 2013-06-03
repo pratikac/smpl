@@ -10,7 +10,7 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 
 # for run time
 set(ROS_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "-std=c++0x -pg")
+set(CMAKE_CXX_FLAGS "-std=c++0x -pg -o3")
 
 # for debug
 #set(ROS_BUILD_TYPE Debug)
