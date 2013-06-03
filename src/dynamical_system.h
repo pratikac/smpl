@@ -10,12 +10,12 @@ using namespace std;
 
 #define SQ(x)   ((x)*(x))
 
-template<size_t N>
+template<size_t N_t>
 class state_c
 {
   public:
+    const static size_t N = N_t;
     float x[N];
-    const static size_t dim = N;
 
     state_c()
     {
@@ -40,12 +40,10 @@ class state_c
         x[i] = sin.x[i];
       return *this;
     }
-    
     float operator[](const size_t i) const 
     {
       return x[i];
     }
-    
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const
     {
       if(prefix)
@@ -59,7 +57,6 @@ class state_c
         os<<suffix;
       return os;
     }
-    
     float dist(const state_c& s, bool only_xy=false) const
     {
       size_t len = N;

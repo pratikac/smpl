@@ -22,6 +22,7 @@ class region_c
       for(size_t i=0; i<N; i++)
         s[i] = c[i] = 0;
     }
+    
     region_c(const float* cin, const float* sin)
     {
       for(size_t i=0; i< N; i++)
@@ -30,6 +31,7 @@ class region_c
         c[i] = cin[i];
       }
     }
+    
     bool is_inside(const state_c<N>& sin) const
     {
       for(size_t i=0; i<N; i++)
@@ -46,12 +48,12 @@ class cost_c
 {
   public:
     float val;
-    cost_c() : val(FLT_MAX){}
+    cost_c() : val(INF){}
     cost_c(float xin) : val(xin) {}
     cost_c(const cost_c& c2) : val(c2.val){}
     
-    virtual ~cost_c(){
-    }
+    virtual ~cost_c(){}
+
     virtual cost_c& operator+=(const cost_c& rhs)
     {
       val += rhs.val;
@@ -85,6 +87,7 @@ class cost_c
       return os;
     }
 };
+
 
 template<class dynamical_system_tt, class map_tt, class cost_tt>
 class system_c
@@ -131,9 +134,8 @@ class system_c
       return goal_region.is_inside(s);
     }
     
-    virtual state* sample_state(bool sample_from_free=false)
+    virtual state sample_state(bool sample_from_free=false)
     {
-      //cout << "system_t::sample_state() called" << endl << flush;
       if(sample_from_free)
       {
         float ps[N] ={0};
@@ -144,30 +146,27 @@ class system_c
       }
       else
       {
-        //cout << "sample_from_free is FALSE" << endl << flush;
         state* spos = new state();
         bool found_free_state = false;
         while(!found_free_state)
         {
-          //cout << "not in free space...retrying" << endl << flush;
           for(size_t i=0; i<N; i++)
             spos->x[i] = operating_region.c[i] + (RANDF-0.5)*operating_region.s[i];
           found_free_state = !is_in_collision(*spos);
         }
-        //cout << "Now in free space...exiting.." << endl << flush;
         return spos;
       }
       return NULL;
     }
-    virtual state* sample_in_goal()
+    virtual state sample_in_goal()
     {
-      state* ps = new state();
+      state ps;
       bool found_free_state = false;
       while(!found_free_state)
       {
         for(size_t i=0; i<N; i++)
-          ps->x[i] = goal_region.c[i] + (RANDF-0.5)*goal_region.s[i];
-        found_free_state = !is_in_collision(*ps);
+          ps.x[i] = goal_region.c[i] + (RANDF-0.5)*goal_region.s[i];
+        found_free_state = !is_in_collision(ps);
       }
       return ps;
     }
@@ -239,14 +238,16 @@ class system_c
         c += get_state_cost(state(ps));
       return cost_t(c);
     }
-    
-    virtual cost_t* get_zero_cost(){
-      return new cost_t(0);
+   
+    virtual cost_t get_zero_cost()
+    {
+      return cost_t(0);
+    }
+    virtual cost_t get_inf_cost()
+    {
+      return cost_t(FLT_MAX/2);
     }
 
-    virtual cost_t* get_infinite_cost(){
-      return new cost_t(FLT_MAX);
-    }
 
     void test_extend_to()
     {

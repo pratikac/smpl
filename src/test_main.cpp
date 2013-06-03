@@ -91,11 +91,13 @@ int main()
 #else
 
 #include "dubins.h"
+#include "map.h"
 #include "system.h"
 
 int main()
 {
   dubins_c dubins;
+  system_c<dubins_c, map_c<3>, cost_c> system;
   return 0;
 }
 #endif

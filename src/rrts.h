@@ -12,34 +12,32 @@
 #include "system.h"
 using namespace std;
 
-template<size_t N> class vertex_t;
-template<size_t N> class edge_t;
-template<size_t N> class rrts_t;
-
-template<class state, class opt_data>
-class vertex_t
+template<class system_tt>
+class vertex_c
 {
   public:
-    typedef vertex_t<state, opt_data> vertex;
-    typedef edge_t<opt_data> edge;
+    typedef vertex_c<system_tt> vertex;
+    typedef edge_c<system_tt> edge;
+    
+    typedef typename system_tt::state state_t;
+    typedef typename system_tt::control control_t;
+    typedef typename system_tt::opt_data_t opt_data_t;
+    typedef typename system_tt::trajectory trajectory_t;
 
     vertex* parent;
-    const state_t<N>* state;
+    const state_t state;
     set<vertex*> children;
     
     int mark;
     
-    cost_t* cost_from_root;
-    cost_t* cost_from_parent;
+    cost_t cost_from_root;
+    cost_t cost_from_parent;
     edge* edge_from_parent;
 
     vertex_t() : mark(0)
     {
-      state = NULL;
       parent = NULL;
       edge_from_parent = NULL;
-      cost_from_parent = NULL;
-      cost_from_root = NULL;
     }
     ~vertex_t()
     {
@@ -50,19 +48,14 @@ class vertex_t
         delete state;
       if(edge_from_parent)
         delete edge_from_parent;
-      if(cost_from_root)
-        delete cost_from_root;
-      /*if(cost_from_parent)
-        delete cost_from_parent;*/ // already deleted when edge_from_parent is deleted!
     }
 
-    vertex_t(const state_t<N>* sin) : mark(0)
+    vertex_t(const state_t& sin)
     {
       parent = NULL;
       edge_from_parent = NULL;
-      cost_from_parent = NULL;
-      cost_from_root = NULL;
       state = sin;
+      mark = 0;
     }
     string tostring() const
     {
@@ -74,80 +67,76 @@ class vertex_t
       for(auto& pc : children)
         pc->print_branch(prefix+"   ");
     }
-    const state_t<N>& get_state() const { return *state;};
+    state_t& get_state() const { return *state;};
     vertex& get_parent() const {return *parent;};
-    cost_t* get_cost() const {return cost_from_root;};
+    cost_t& get_cost() const {return cost_from_root;};
 };
 
-template<class s_t, class cost_t, class opt_data_t>
-class edge_t
+template<class system_tt>
+class edge_c
 {
   public:
-    typedef edge_t<s_t, opt_data_t> edge;
-    typedef s_t state;
+    typedef edge_c<system_tt> edge;
+    
+    typedef typename system_tt::state state;
+    typedef typename system_tt::control control;
+    typedef typename system_tt::opt_data_t opt_data_t;
+    typedef typename system_tt::trajectory trajectory;
+    typedef typename system_tt::cost_t cost_t;  
 
     const state* start_state;
     const state* end_state;
 
-    cost_t* cost;
-    opt_data_t* opt_data;
+    cost_t cost;
+    opt_data_t opt_data;
 
-    edge_t()
+    edge_c()
     {
-      opt_data = NULL;
       end_state = NULL;
-      cost = NULL;
+      start_state = NULL;
     };
 
-    edge_t(const state* si, const state* se, opt_data_t* opt_data_in=NULL)
+    edge_c(const state* si, const state* se, cost_t& c, opt_data_t& opt_data_in)
     {
       start_state = si;
       end_state = se;
       opt_data = opt_data_in;
-      cost = sys.evaluate_extend_cost(si, se, opt_data);
-    }
-
-    ~edge_t()
-    {
-      if(opt_data)
-        delete opt_data;
-      if(cost)
-        delete cost;
+      cost = c;
     }
 };
 
-template<size_t N>
-class rrts_t
+template<class system_tt>
+class rrts_c
 {
   public:
+    typedef typename system_tt::state state;
+    typedef typename system_tt::control control;
+    typedef typename system_tt::opt_data_t opt_data_t;
+    typedef typename system_tt::trajectory trajectory;
+    typedef typename system_tt::cost_t cost_t;  
+    const static size_t num_dim = system_tt::N;
+    
+    typedef typename vertex_c<system_tt> vertex;
+    typedef typename edge_c<system_tt> edge;
+    typedef system_tt system_t;
+
     typedef struct kdtree kdtree_t;
     typedef struct kdres kdres_t;
 
-    typedef state_t<N> state;
-    typedef vertex_t<N> vertex;
-    typedef edge_t<N> edge;
+    system_t* system;
 
-    system_t<N>* system;
-
-    int num_dim;
     int num_vertices;
     list<vertex*> list_vertices;
     float gamma;
-
     float goal_sample_freq;
-    
-    static int debug_counter;
-
-    cost_t* zero_cost;
-    cost_t* infinite_cost;
-
-    cost_t* lower_bound_cost;
-    vertex* lower_bound_vertex;
-    kdtree_t* kdtree;
-
     bool do_branch_and_bound;
 
     vertex* root;
+    cost_t lower_bound_cost;
+    vertex* lower_bound_vertex;
+    kdtree_t* kdtree;
+
+    static int debug_counter;
 
     rrts_t()
     {
@@ -155,16 +144,13 @@ class rrts_t
 
       gamma = 2.5;
       goal_sample_freq = 0.1;
+      do_branch_and_bound = true;
 
       root = NULL;
       lower_bound_vertex = NULL;
 
       kdtree = NULL;
       num_vertices = 0;
-      num_dim = N;
-
-      do_branch_and_bound = true;
-
     }
     ~rrts_t()
     {
@@ -172,54 +158,56 @@ class rrts_t
         kd_free(kdtree);
       for(auto& i : list_vertices)
         delete i;
-
-      delete zero_cost;
-      delete infinite_cost;
-      delete lower_bound_cost;
     }
     
-    int initialize(system_t<N>* sys, const state* rs, bool do_branch_and_bound_=true)
+    void clear_list_vertices()
     {
-      if(!sys)
-        return 1;
-      else
-        system = sys;
-      if(! rs)
-        return 2;
-
       for(auto& i : list_vertices)
         delete i;
       list_vertices.clear();
       num_vertices = 0;
-      
-      lower_bound_cost = system->get_infinite_cost();
-      
-      lower_bound_vertex = NULL;
-
-      if(kdtree)
-        kd_free(kdtree);
-      kdtree = kd_create(num_dim);
-     
+    }
+    int set_root(const state& rs)
+    {
       root = new vertex(rs);
       root->cost_from_root = system->get_zero_cost();
       root->cost_from_parent = system->get_zero_cost();
       root->edge_from_parent = NULL;
       root->parent = NULL;
       root->children.clear();
+      
       insert_into_kdtree(*root);
+      
+      update_best_vertex(*root);
+    }
+    int initialize(system_tt* sys, const state* rs, bool do_branch_and_bound_in=true)
+    {
+      if(!sys)
+        return 1;
+      else
+        system = sys;
+      if(!rs)
+        return 2;
+
+      clear_list_vertices();  
+      lower_bound_cost = system->get_inf_cost();
+      lower_bound_vertex = NULL;
+      do_branch_and_bound = do_branch_and_bound_in;
+
+      if(kdtree)
+        kd_free(kdtree);
+      kdtree = kd_create(num_dim);
+     
+      set_root(*rs);
       root->state->print(cout,"set root to:", "\n");
 
-      zero_cost = system->get_zero_cost();
-      infinite_cost = system->get_infinite_cost();
-      do_branch_and_bound = do_branch_and_bound_;
-            
       return 0;
     }
     
     int iteration()
     {
       // 1. sample
-      state* psr;
+      state psr;
       float p = RANDF;
       if(p < goal_sample_freq){
         psr = system->sample_in_goal();
