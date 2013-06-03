@@ -120,21 +120,21 @@ class trajectory_c
     int print(const char* prefix="traj")
     {
       print_states("states");
-      print_controls("controls");
+      //print_controls("controls");
       return 0;
     }
     int print_states(const char* prefix="")
     {
       cout<<prefix<<endl;
       for(auto& s : states)
-        s.print();
+        s.print(cout, "", "\n");
       return 0;
     }
     int print_controls(const char* prefix="")
     {
       cout<<prefix<<endl;
       for(auto& c : controls)
-        c.print();
+        c.print(cout, "", "\n");
       return 0;
     }
 };

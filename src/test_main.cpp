@@ -93,11 +93,25 @@ int main()
 #include "dubins.h"
 #include "map.h"
 #include "system.h"
+using namespace std;
+
+typedef state_c<3> state;
+typedef region_c<3> region;
 
 int main()
 {
-  dubins_c dubins;
   system_c<dubins_c, map_c<3>, cost_c> system;
+  
+  float zero[3] = {0};
+  float size[3] = {100,100,2*M_PI};
+  system.operating_region = region(zero, size);
+
+  float gc[3] = {10,10,0};
+  float gs[3] = {1,1,0.1*M_PI};
+  state goal_state(gc);
+  system.goal_region = region(gc,gs);
+
+  system.test_extend_to();
   return 0;
 }
 #endif

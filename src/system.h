@@ -48,7 +48,7 @@ class cost_c
 {
   public:
     float val;
-    cost_c() : val(INF){}
+    cost_c() : val(FLT_MAX/2){}
     cost_c(float xin) : val(xin) {}
     cost_c(const cost_c& c2) : val(c2.val){}
     
@@ -103,8 +103,8 @@ class system_c
     typedef typename dynamical_system_t::trajectory_t trajectory;
     const static size_t N = dynamical_system_t::state_t::N;
 
-    map_t* obstacle_map;
-    dynamical_system_t* dynamical_system;
+    map_t obstacle_map;
+    dynamical_system_t dynamical_system;
 
     region_c<N> operating_region;
     region_c<N> goal_region;
@@ -122,7 +122,7 @@ class system_c
 
     virtual bool is_in_collision(const state& s)
     {
-      return obstacle_map->is_in_collision(s.x);
+      return obstacle_map.is_in_collision(s.x);
     }
     float get_goal_cost(const state& s)
     {
@@ -134,41 +134,35 @@ class system_c
       return goal_region.is_inside(s);
     }
     
-    virtual state sample_state(bool sample_from_free=false)
+    virtual int sample_state(state& s, bool sample_from_free=false)
     {
       if(sample_from_free)
       {
-        float ps[N] ={0};
-        if(obstacle_map->sample_free_space(ps))
-          return NULL;
-        else
-          return new state(ps);
+        if(obstacle_map.sample_free_space(s.x))
+          return 1;
       }
       else
       {
-        state* spos = new state();
         bool found_free_state = false;
         while(!found_free_state)
         {
           for(size_t i=0; i<N; i++)
-            spos->x[i] = operating_region.c[i] + (RANDF-0.5)*operating_region.s[i];
-          found_free_state = !is_in_collision(*spos);
+            s.x[i] = operating_region.c[i] + (RANDF-0.5)*operating_region.s[i];
+          found_free_state = !is_in_collision(s);
         }
-        return spos;
       }
-      return NULL;
+      return 0;
     }
-    virtual state sample_in_goal()
+    virtual int sample_in_goal(state& s)
     {
-      state ps;
       bool found_free_state = false;
       while(!found_free_state)
       {
         for(size_t i=0; i<N; i++)
-          ps.x[i] = goal_region.c[i] + (RANDF-0.5)*goal_region.s[i];
-        found_free_state = !is_in_collision(ps);
+          s.x[i] = goal_region.c[i] + (RANDF-0.5)*goal_region.s[i];
+        found_free_state = !is_in_collision(s);
       }
-      return ps;
+      return 0;
     }
     
     int copy_array(const float* xin, float* xout, int dim)
@@ -201,7 +195,7 @@ class system_c
 
     virtual int extend_to(const state* si, const state* sf, bool check_obstacles, trajectory& traj, opt_data_t* opt_data)
     {
-      int res = dynamical_system->extend_to(si, sf, traj, opt_data);
+      int res = dynamical_system.extend_to(si, sf, traj, opt_data);
       if(res)
       {
         traj.clear();
@@ -222,13 +216,13 @@ class system_c
 
     virtual cost_t* evaluate_extend_cost(const state* si, const state* sf, opt_data_t*& opt_data)
     {
-      float total_variation = dynamical_system->evaluate_extend_cost(si, sf, opt_data);
+      float total_variation = dynamical_system.evaluate_extend_cost(si, sf, opt_data);
       return new cost_t(total_variation);
     }
 
     virtual float get_state_cost(const state& s)
     {
-      return obstacle_map->get_state_cost(s.x);
+      return obstacle_map.get_state_cost(s.x);
     };
 
     virtual cost_t evaluate_trajectory_cost(trajectory& traj)
@@ -248,7 +242,6 @@ class system_c
       return cost_t(FLT_MAX/2);
     }
 
-
     void test_extend_to()
     {
       trajectory traj;
@@ -258,8 +251,9 @@ class system_c
       {
         state sr;
         sample_in_goal(sr);
-        cout<<"sampled: "; sr.print();
-        extend_to(&origin, &sr, true, traj);
+        sr.print(cout, "sampled:","\n");
+
+        extend_to(&origin, &sr, true, traj, NULL);
         cout<<"cost: "<< traj.total_variation<<endl;
         traj.print();
         getchar();
