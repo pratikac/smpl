@@ -98,6 +98,7 @@ using namespace std;
 
 typedef state_c<3> state;
 typedef region_c<3> region;
+typedef trajectory_c<state, control_c<1> > trajectory_t;
 
 int main()
 {
@@ -112,7 +113,38 @@ int main()
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
   
-  rrts.system.test_extend_to();
+  state origin(zero);
+  rrts.initialize(origin);
+
+  time_t ts=time(0), te;
+  int max_iterations = 1000, diter=max_iterations/10;
+  trajectory_t traj;
+  for(int i=0; i<max_iterations; i++)
+  {
+    cout<<i<<" "<<rrts.get_best_cost().val<<endl;
+    cout<<"check_tree: "<< rrts.check_tree() << endl;
+    for(int j=0; j< 10; j++)
+      rrts.iteration();
+#if 1
+    if(rrts.system.is_in_goal(rrts.root->state))
+      break;
+    if(i % 100 == 0)
+    { 
+      cout<<i<<" "<<rrts.get_best_cost().val<<endl;
+      rrts.switch_root(25, traj);
+      cout<<"is safe: "<< rrts.system.is_safe_trajectory(traj)<<endl;
+      traj.clear();
+      cout<<"switched root: ";
+      rrts.root->state.print();
+      cout<<endl;
+    }
+#endif
+  }
+  cout<<rrts.get_best_cost().val<<endl;
+  //traj.print();
+  
+  cout<<"time: "<< difftime(time(0), ts)<<endl;
+
   return 0;
 }
 #endif
