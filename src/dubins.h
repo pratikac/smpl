@@ -324,7 +324,6 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
 
       return min_time;
     }
-
 };
 
 #endif

@@ -40,6 +40,13 @@ class state_c
         x[i] = sin.x[i];
       return *this;
     }
+    state_c operator+(const state_c& s2) const
+    {
+      state_c toret = *this;
+      for(size_t i=0; i<N; i++)
+        toret.x[i] += s2.x[i];
+      return toret;
+    }
     float operator[](const size_t i) const 
     {
       return x[i];

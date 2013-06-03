@@ -103,7 +103,8 @@ class system_c
     typedef typename dynamical_system_t::opt_data_t opt_data_t;
     typedef typename dynamical_system_t::trajectory_t trajectory;
     const static size_t N = dynamical_system_t::state_t::N;
-
+    typedef region_c<N> region_t;
+  
     map_t obstacle_map;
     dynamical_system_t dynamical_system;
 
