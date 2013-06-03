@@ -34,23 +34,22 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       turning_radii[2] = 8;
     };
 
-    int extend_to(const state_t* si, const state_t* sf, trajectory_t& traj, dubins_optimization_data_t* opt_data)
+    int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, dubins_optimization_data_t& opt_data)
     {
       bool return_trajectory = true;
-      if(!opt_data)
+      if(opt_data.turning_radius < 0)
       {
         if(!evaluate_extend_cost(si, sf, opt_data))
           return 1;
       }
       int& best_turning_radius = opt_data->turning_radius;
-      extend_dubins_all(si->x, sf->x, return_trajectory, traj, turning_radii[best_turning_radius]);
+      extend_dubins_all(si.x, sf.x, return_trajectory, traj, turning_radii[best_turning_radius]);
       return 0;
     }
     
-    float evaluate_extend_cost(const state_t* si, const state_t* sf, dubins_optimization_data_t*& opt_data)
+    float evaluate_extend_cost(const state_t& si, const state_t& sf, dubins_optimization_data_t& opt_data)
     {
       float min_cost = FLT_MAX;
-      opt_data = new dubins_optimization_data_t();
 
       int& best_turning_radius = opt_data->turning_radius;
       best_turning_radius = -1;
@@ -60,7 +59,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       for(int i=num_turning_radii-1; i >=0; i--)
       {
         float tr = turning_radii[i];
-        float cost = extend_dubins_all(si->x, sf->x, return_trajectory, traj, tr);
+        float cost = extend_dubins_all(si.x, sf.x, return_trajectory, traj, tr);
         if(cost > 0)
         {
           if(cost < min_cost)
@@ -86,7 +85,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       float y_tr = y_s2 - y_s1;
       float t_tr = atan2 (y_tr, x_tr);
 
-      float distance = sqrt ( x_tr*x_tr + y_tr*y_tr );
+      float distance = sqrt (x_tr*x_tr + y_tr*y_tr);
 
       float x_start;
       float y_start;
@@ -159,7 +158,6 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
 
       float t_increment_s1 = direction_s1 * (t_start - t_s1);
       float t_increment_s2 = direction_s2 * (t_s2 - t_end);
-
       modulo_zero_2pi(t_increment_s1);
       modulo_zero_2pi(t_increment_s2);
 
@@ -175,15 +173,15 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       modulo_mpi_pi(ts2c);
 
       // comment turning_cost for testing
-      float time_cost = (( fabs(ts1c) + fabs(ts2c)) * turning_radius  + distance);
-      float turning_cost = ( fabs(ts1c) + fabs(ts2c));
-      time_cost += turning_cost;
+      float total_cost = (( fabs(ts1c) + fabs(ts2c)) * turning_radius  + distance);
+      float turning_cost = 0*(fabs(ts1c) + fabs(ts2c));
+      total_cost += turning_cost;
 
       if (return_trajectory) 
       {
         traj.clear();
-        traj.total_variation = time_cost;
-
+        traj.total_variation = total_cost;
+        
         // Generate states/inputs
         float del_d = delta_distance;
         float del_t = del_d/turning_radius;
@@ -256,7 +254,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
           traj.controls.push_back(control_t(&control_curr));
         }
       }
-      return time_cost;
+      return total_cost;
     }
 
     float extend_dubins_all(const float si[3], const float sf[3], bool return_trajectory,
@@ -319,6 +317,5 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
     }
 
 };
-
 
 #endif

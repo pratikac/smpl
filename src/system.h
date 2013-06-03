@@ -7,6 +7,7 @@
 #include <cfloat>
 #include <vector>
 #include <ostream>
+#include <string.h>
 using namespace std;
 
 
@@ -167,8 +168,7 @@ class system_c
     
     int copy_array(const float* xin, float* xout, int dim)
     {
-      for(int i=0; i<dim; i++)
-        xout[i] = xin[i];
+      memcpy(xout, xin, sizeof(float)*dim);
       return 0;
     }
     virtual bool is_safe_trajectory(const trajectory& traj)
@@ -193,7 +193,8 @@ class system_c
       return true;
     }
 
-    virtual int extend_to(const state* si, const state* sf, bool check_obstacles, trajectory& traj, opt_data_t* opt_data)
+    virtual int extend_to(const state& si, const state& sf, bool check_obstacles,
+        trajectory& traj, opt_data_t& opt_data)
     {
       int res = dynamical_system.extend_to(si, sf, traj, opt_data);
       if(res)
@@ -214,10 +215,14 @@ class system_c
       return res;
     }
 
-    virtual cost_t* evaluate_extend_cost(const state* si, const state* sf, opt_data_t*& opt_data)
+    virtual int evaluate_extend_cost(const state& si, const state& sf,
+        opt_data_t& opt_data, cost_t& extend_cost)
     {
       float total_variation = dynamical_system.evaluate_extend_cost(si, sf, opt_data);
-      return new cost_t(total_variation);
+      extend_cost = cost_t(total_variation);
+      if(total_variation > 0)
+        return 0;
+      return 1;
     }
 
     virtual float get_state_cost(const state& s)

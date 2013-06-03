@@ -8,6 +8,8 @@
 #include <cfloat>
 #include "kdtree.h"
 #include <algorithm>
+#include <tuple>
+#include <functional>
 
 #include "system.h"
 using namespace std;
@@ -41,15 +43,9 @@ class vertex_c
     }
     ~vertex_t()
     {
-      //static int debug_counter = 0;
-      //debug_counter++;
-      //cout<<"vdc: "<<debug_counter<<endl;
-      if(state)
-        delete state;
       if(edge_from_parent)
         delete edge_from_parent;
     }
-
     vertex_t(const state_t& sin)
     {
       parent = NULL;
@@ -65,9 +61,9 @@ class vertex_c
     {
       cout << prefix << tostring() << " - cost: "; cost_from_root->print();
       for(auto& pc : children)
-        pc->print_branch(prefix+"   ");
+        pc->print_branch(prefix+"\t");
     }
-    state_t& get_state() const { return *state;};
+    state_t& get_state() const { return state;};
     vertex& get_parent() const {return *parent;};
     cost_t& get_cost() const {return cost_from_root;};
 };
@@ -112,7 +108,7 @@ class rrts_c
     typedef typename system_tt::state state;
     typedef typename system_tt::control control;
     typedef typename system_tt::opt_data_t opt_data_t;
-    typedef typename system_tt::trajectory trajectory;
+    typedef typename system_tt::trajectory trajectory_t;
     typedef typename system_tt::cost_t cost_t;  
     const static size_t num_dim = system_tt::N;
     
@@ -123,7 +119,7 @@ class rrts_c
     typedef struct kdtree kdtree_t;
     typedef struct kdres kdres_t;
 
-    system_t* system;
+    system_t system;
 
     int num_vertices;
     list<vertex*> list_vertices;
@@ -140,8 +136,6 @@ class rrts_c
 
     rrts_t()
     {
-      system = NULL;
-
       gamma = 2.5;
       goal_sample_freq = 0.1;
       do_branch_and_bound = true;
@@ -156,8 +150,7 @@ class rrts_c
     {
       if(kdtree)
         kd_free(kdtree);
-      for(auto& i : list_vertices)
-        delete i;
+      clear_list_vertices();
     }
     
     void clear_list_vertices()
@@ -207,45 +200,33 @@ class rrts_c
     int iteration()
     {
       // 1. sample
-      state psr;
+      state sr;
+      int ret = 0;
       float p = RANDF;
-      if(p < goal_sample_freq){
-        psr = system->sample_in_goal();
-      }else{
-        psr = system->sample_state();
-      }
-
-      if(!psr)
+      if(p < goal_sample_freq)
+        ret = system->sample_in_goal(sr);
+      else
+        ret = system->sample_state(sr);
+      if(ret)
         return 1;
-
-      cout << "SAMPLE: "; psr->print(); cout << endl;
-
-      state& sr = *psr;
 
       // 2. compute nearest vertices
       vector<vertex*> near_vertices;
       if(get_near_vertices(sr, near_vertices))
-      {
-        delete psr;
         return 2;
-      }
 
       // 3. best parent
       vertex* best_parent = NULL;
       edge* edge_from_parent = NULL;
       if(find_best_parent(sr, near_vertices, best_parent, edge_from_parent))
-      {
-        delete psr;
         return 3;
-      }
+      
+      // 4. draw edge to parent from new vertex
       vertex* new_vertex = insert_edge(*best_parent, *edge_from_parent);
       if(!new_vertex)
-      {
-        delete psr;
         return 4;
-      }
-      //cout << "VERTEX: ";new_vertex->state->print();cout << endl;
-      // 4. rewire
+      
+      // 5. rewire
       if(near_vertices.size())
         rewire_vertices(*new_vertex, near_vertices);
       
@@ -264,24 +245,15 @@ class rrts_c
       return 0;
     }
     
-    vertex& get_root_vertex() { return *root;};
-    cost_t* get_best_cost() { return lower_bound_cost;};
-    vertex& get_best_vertex() { return *lower_bound_vertex;}
+    vertex& get_root_vertex() {return *root;};
+    cost_t get_best_cost()    {return lower_bound_cost;};
+    vertex& get_best_vertex() {return *lower_bound_vertex;}
    
-    float* copy_float_array(const float* src, size_t dim)
-    {
-      float* dest = new float[dim];
-      for(size_t i=0; i<dim; i++)
-        dest[i] = src[i];
-      return dest;
-    }
-
     int get_best_trajectory(trajectory_t& best_traj)
     {
       if(!lower_bound_vertex)
         return 1;
       
-      best_traj.N = N;
       best_traj.clear();
       bool check_obstacles = false;
       vertex* vc = lower_bound_vertex;
@@ -291,7 +263,8 @@ class rrts_c
         if(vparent)
         {
           trajectory_t traj_from_parent;
-          system->extend_to(vparent->state, vc->state, check_obstacles, traj_from_parent, vc->edge_from_parent->opt_data);
+          system->extend_to(vparent->state, vc->state, check_obstacles,
+              traj_from_parent, &vc->edge_from_parent->opt_data);
           traj_from_parent.reverse();
           best_traj.append(traj_from_parent);
         }
@@ -326,7 +299,6 @@ class rrts_c
       }
       else
       {
-        //kd_res_rewind(kdres);
         while(! kd_res_end(kdres))
         {
           vertex* vc = (vertex*)kd_res_item_data(kdres);
@@ -345,7 +317,7 @@ class rrts_c
       if(system->is_in_goal(*(v.state)))
       {
         // implement goal cost here
-        if( (!lower_bound_vertex) || (*(v.cost_from_root) < *(lower_bound_cost)))
+        if( (!lower_bound_vertex) || (v.cost_from_root < lower_bound_cost))
         {
           lower_bound_cost = v.cost_from_root;
           lower_bound_vertex = &v;
@@ -357,14 +329,11 @@ class rrts_c
     vertex* insert_edge(vertex& vs, edge& e)
     {
       // branch and bound
-      if(do_branch_and_bound){
-        cost_t* new_cost = &(*(vs.cost_from_root) + *(e.cost)); 
-        if(*new_cost > *lower_bound_cost){
-          delete new_cost;
+      if(do_branch_and_bound)
+      {
+        cost_t new_cost = vs.cost_from_root + e.cost; 
+        if(new_cost > lower_bound_cost)
           return NULL;
-        }
-
-      delete new_cost;
       }
 
       // create new vertex
@@ -378,7 +347,7 @@ class rrts_c
     int insert_edge(vertex& vs, edge& e, vertex& ve)
     {
       ve.cost_from_parent = e.cost;
-      ve.cost_from_root = &(*vs.cost_from_root + *ve.cost_from_parent);
+      ve.cost_from_root = vs.cost_from_root + ve.cost_from_parent;
       update_best_vertex(ve);
       
       if(ve.edge_from_parent)
@@ -392,29 +361,30 @@ class rrts_c
       return 0;
     }
 
-    static bool compare_vertex_cost_pairs(const pair<vertex*, pair<cost_t*, optimization_data_t*> >& p1, const pair<vertex*, pair<cost_t*, optimization_data_t*> >& p2)
+    static bool compare_vertex_cost_pairs(const pair<vertex*, cost_t>& p1,
+        const pair<vertex*, cost_t>& p2)
     {
-      //cout << "rrts.h:410   c1 @ " << p1.second.first << "   c2 @ " << p2.second.first << endl;
-      return (*(p1.second.first) < *(p2.second.first));
+      return (p1.second < p2.second);
     }
-
-    int find_best_parent(const state& sin, const vector<vertex*>& near_vertices, vertex*& best_parent,
-        edge*& best_edge)
+    
+    int find_best_parent(const state& si, const vector<vertex*>& near_vertices,
+        vertex*& best_parent, edge*& best_edge)
     {
       // 1. create vertex_cost_pairs
-      vector<pair<vertex*, pair<cost_t*, optimization_data_t*> > > vertex_cost_pairs;
+      vector<pair<vertex*, cost_t> vertex_cost_pairs;
+      unordered_map<vertex*, tuple<cost_t, cost_t, opt_data_t> vertex_map;
       for(auto& pv : near_vertices)
       {
         vertex& v = *pv;
-        optimization_data_t* opt_data = NULL;
+        opt_data_t opt_data;
+        cost_t edge_cost;
 
-        cost_t* v_cost = system->evaluate_extend_cost(v.state, &sin, opt_data);
-        if(v_cost->val > 0){
-          vertex_cost_pairs.push_back(make_pair(pv, make_pair(v_cost, opt_data)));
-        }else{
-          delete v_cost;
-          delete opt_data;
-        }
+        if(system->evaluate_extend_cost(v.state, si, opt_data, edge_cost))
+          continue;
+        cost_t v_cost = v.cost_from_root + edge_cost;
+        
+        vertex_cost_pairs.push_back(make_pair(pv, v_cost));
+        vertex_map.insert(make_pair(pv, tuple(edge_cost, v_cost, opt_data)));
       }
       
       // 2. sort using compare function of cost_t
@@ -427,48 +397,36 @@ class rrts_c
       for(auto& p : vertex_cost_pairs)
       {
         vertex& v = *(p.first);
-        optimization_data_t* opt_data = p.second.second;
-        if( (!found_best_parent) && (system->extend_to(v.state, &sin, check_obstacles, traj, opt_data)==0) )
+        opt_data_t& opt_data = get<2>(vertex_map[v]);
+        cost_t& edge_cost = get<0>(vertex_map[v]);
+        if( (!found_best_parent) && (system->extend_to(v.state, si, check_obstacles,
+                traj, opt_data)==0) )
         {
           best_parent = &v;
-          best_edge = new edge(v.state, &sin, *system, opt_data);
+          best_edge = new edge(v.state, &sin, edge_cost, opt_data);
           //cout<<"best_edge.cost: "<< best_edge.cost.val << endl;
-          traj.clear();
           found_best_parent = true;
-        }
-        else
-        {
-          // free opt_data
-          delete opt_data;
         }
       }
       if(found_best_parent)
         return 0;
-      else
-        return 1;
+      return 1;
     }
 
     int update_all_costs()
     {
-      if(lower_bound_cost)
-        delete lower_bound_cost;
-      lower_bound_cost = infinite_cost->clone();
+      lower_bound_cost = system.get_inf_cost();
       lower_bound_vertex = NULL;
-      cout << "Visiting ROOT, @ "; root->state->print(); cout << endl;
       update_branch_cost(*root,0); 
       return 0;
     }
 
     int update_branch_cost(const vertex& v, int depth)
     {
-      cout << "called update branch cost, depth " << depth << endl << flush;
       for(auto& pc : v.children)
       {
-        if(depth>100) return 1;
         vertex& child = *pc;
-        cout << "asked to sum "; v.cost_from_root->print(); cout << "  +  " ; child.cost_from_parent->print(); 
-        child.cost_from_root = &(*v.cost_from_root + *child.cost_from_parent);
-        cout << " = "; child.cost_from_root->print(); cout << endl;
+        child.cost_from_root = v.cost_from_root + child.cost_from_parent;
         update_best_vertex(child); 
         update_branch_cost(child, depth+1);
       }
@@ -481,25 +439,18 @@ class rrts_c
       for(auto& pvn : near_vertices)
       {
         vertex& vn = *pvn;
-        optimization_data_t* opt_data = NULL;
+        opt_data_t opt_data;
         trajectory_t traj;
-        cost_t* cost_edge = system->evaluate_extend_cost(v.state, vn.state, opt_data);
-        if((*cost_edge) < (*zero_cost))
-        {
-          delete cost_edge;
-          delete opt_data;
+        cost_t cost_edge;
+        if(system.evaluate_extend_cost(v.state, vn.state, opt_data, cost_edge))
           continue;
-        }
 
-        cost_t* cvn = &(*v.cost_from_root + *cost_edge);
-        if((*cvn) < (*vn.cost_from_root))
+        cost_t cvn = v.cost_from_root + cost_edge;
+        if(cvn < vn.cost_from_root)
         {
-          if(system->extend_to(v.state, vn.state, check_obstacles, traj, opt_data))
-          {
-            delete opt_data;
+          if(system.extend_to(v.state, vn.state, check_obstacles, traj, opt_data))
             continue;
-          }
-          edge* en = new edge(v.state, vn.state, *system, opt_data);
+          edge* en = new edge(v.state, vn.state, cost_edge, opt_data);
           insert_edge(v, *en, vn);
 
           update_branch_cost(vn,0);
