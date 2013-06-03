@@ -392,23 +392,19 @@ class rrts_c
       // 3. check obstacles in order of increasing cost
       bool check_obstacles = true;
       trajectory_t traj;
-      bool found_best_parent = false;
       for(auto& p : vertex_cost_pairs)
       {
         vertex& v = *(p.first);
         opt_data_t& opt_data = get<2>(vertex_map[p.first]);
         cost_t& edge_cost = get<0>(vertex_map[p.first]);
-        if( (!found_best_parent) && (system.extend_to(v.state, si, check_obstacles,
-                traj, opt_data)==0) )
+        if(!system.extend_to(v.state, si, check_obstacles,traj, opt_data))
         {
           best_parent = &v;
           best_edge = new edge(&(v.state), &si, edge_cost, opt_data);
           //cout<<"best_edge.cost: "<< best_edge.cost.val << endl;
-          found_best_parent = true;
+          return 0;
         }
       }
-      if(found_best_parent)
-        return 0;
       return 1;
     }
 

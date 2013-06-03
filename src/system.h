@@ -44,7 +44,6 @@ class region_c
     }
 };
 
-// generic cost structure
 class cost_c
 {
   public:

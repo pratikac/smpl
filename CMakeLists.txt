@@ -9,12 +9,12 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 
 # for run time
-#set(ROS_BUILD_TYPE Release)
-#set(CMAKE_CXX_FLAGS "-std=c++0x")
+set(ROS_BUILD_TYPE Release)
+set(CMAKE_CXX_FLAGS "-std=c++0x -pg")
 
 # for debug
-set(ROS_BUILD_TYPE Debug)
-set(CMAKE_CXX_FLAGS "-std=c++0x -ggdb")
+#set(ROS_BUILD_TYPE Debug)
+#set(CMAKE_CXX_FLAGS "-std=c++0x -pg -ggdb")
 
 rosbuild_init()
 

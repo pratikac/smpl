@@ -37,8 +37,8 @@ dynamical_system.h:
 
 dubins.h
   
-  This implements a class dubins_optimization_data_c which is inherited from the
-  general optimization_data_c class. It also implements dubins_c which is derived
+  This implements a dubins_optimization_data_c which is inherited from the
+  general optimization_data_c. It also implements dubins_c which is derived
   from dynamical_system_c.
 
 map.h:
@@ -51,3 +51,6 @@ map.h:
     get_state_cost:
       Returns a float which is the cost for a particular state, e.g., higher cost
       for going into the left lane while driving.
+
+system.h:
+  
