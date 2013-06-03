@@ -93,6 +93,7 @@ int main()
 #include "dubins.h"
 #include "map.h"
 #include "system.h"
+#include "rrts.h"
 using namespace std;
 
 typedef state_c<3> state;
@@ -100,18 +101,18 @@ typedef region_c<3> region;
 
 int main()
 {
-  system_c<dubins_c, map_c<3>, cost_c> system;
+  rrts_c<system_c<dubins_c, map_c<3>, cost_c> > rrts;
   
   float zero[3] = {0};
   float size[3] = {100,100,2*M_PI};
-  system.operating_region = region(zero, size);
+  rrts.system.operating_region = region(zero, size);
 
   float gc[3] = {10,10,0};
   float gs[3] = {1,1,0.1*M_PI};
   state goal_state(gc);
-  system.goal_region = region(gc,gs);
-
-  system.test_extend_to();
+  rrts.system.goal_region = region(gc,gs);
+  
+  rrts.system.test_extend_to();
   return 0;
 }
 #endif

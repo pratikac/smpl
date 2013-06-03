@@ -171,7 +171,7 @@ class rrts_c
       
       insert_into_kdtree(*root);
       
-      update_best_vertex(*root);
+      //update_best_vertex(*root);
     }
     int initialize(system_tt* sys, const state* rs, bool do_branch_and_bound_in=true)
     {
@@ -455,12 +455,6 @@ class rrts_c
 
           update_branch_cost(vn,0);
         }
-        else
-        {
-          traj.clear();
-          delete opt_data;
-        }
-        delete cvn;
       }
       return 0;
     }
@@ -479,10 +473,9 @@ class rrts_c
       return 0;
     }
 
-    // dynamic obstacles stuff
     bool is_safe_trajectory(const trajectory_t& traj)
     {
-      return system->is_safe_trajectory(traj);
+      return system.is_safe_trajectory(traj);
     }
    
     int mark_descendent_vertices(vertex& v)
@@ -493,18 +486,17 @@ class rrts_c
 
       return 0;
     }
-    int delete_unmarked_vertices(vector<vertex*>& surviving_vertices, vertex* except=NULL)
+    int delete_unmarked_vertices(vector<vertex*>& surviving_vertices)
     {
       surviving_vertices.clear();
       for(auto& pv : list_vertices)
       {
-        if(pv && pv->mark == 1)
+        if(pv->mark == 1)
         {
           pv->mark = 0;
           surviving_vertices.push_back(pv);
         }
         else
-          if(pv && pv!=except)
             delete pv;
       }
       return 0;
@@ -525,30 +517,22 @@ class rrts_c
       trajectory_t traj;
       bool check_obstacles = true;
 
-      //v.state->print(cout,"v.state: ","\n");
-      //v.parent->state->print(cout,"v.parent->state: ","\n");
-      //cout<<v.edge_from_parent->opt_data<<endl;
-      //cout<<v.edge_from_parent->opt_data->turning_radius<<endl;
-
-      if(system->extend_to(v.parent->state, v.state, check_obstacles, traj, v.edge_from_parent->opt_data))
+      if(system.extend_to(v.parent->state, v.state, check_obstacles,
+            traj, v.edge_from_parent->opt_data))
       { 
-        traj.clear();
         mark_vertex_and_remove_from_parent(v);
       }
       else
       {
-        traj.clear();
         for(auto& pc : v.children)
-        {
           check_and_mark_children(*pc);
-        }
       }
       return 0;
     }
 
     int check_tree()
     {
-      if(system->is_in_collision(*(root->state)))
+      if(system.is_in_collision(root->state))
       {
         cout<<"root in collision"<<endl;
         return 1;
@@ -586,7 +570,7 @@ class rrts_c
     int lazy_check_tree(const trajectory_t& committed_trajectory)
     {
       int ret = 0;
-      if(!system->is_safe_trajectory(committed_trajectory))
+      if(!system.is_safe_trajectory(committed_trajectory))
         ret = check_tree();
       return ret;
     }
@@ -612,14 +596,13 @@ class rrts_c
       cout<<endl;
       return 0;
     }
-    int switch_root(const float& distance, trajectory_t& committed_trajectory, vertex** last_committed_vertex_out = NULL)
+    int switch_root(const float& distance, trajectory_t& committed_trajectory)
     {
-      cout << "called switch root" << endl << flush;
       if(!lower_bound_vertex)
         return 1;
       
       // 0. if root is inside goal
-      if(system->is_in_goal(*(root->state)))
+      if(system.is_in_goal(root->state))
         return 0;
 
       // 1. find new root
@@ -643,7 +626,8 @@ class rrts_c
           vertex& parent = *(vc.parent);
           trajectory_t traj;
           // traj connects parent with vc!
-          if(!system->extend_to(parent.state, vc.state, check_obstacles, traj, vc.edge_from_parent->opt_data))
+          if(!system.extend_to(parent.state, vc.state, check_obstacles,
+                traj, vc.edge_from_parent->opt_data))
           {
             // 1.a go ahead until reach the edge with the root
             if( (length + traj.total_variation) < distance)
@@ -654,11 +638,10 @@ class rrts_c
             // 1.b ----length----distance(new_root)----length+total_variation(new_child)
             else
             {
-              state sc = state(traj.states.front()), sp = sc; // note: creating a new state here discards peculiar methods/fields of custom child classes of state, if used.
+              state sc = state(traj.states.front()), sp = sc; 
               auto pc = traj.controls.begin();
               bool only_xy = true;
               float t1 = 0;
-              committed_trajectory.N = traj.N;
               for(auto& ps : traj.states)
               {
                 sc = state(ps);
@@ -667,10 +650,8 @@ class rrts_c
                 if((t1+length)<distance)
                 {
                   length = length + t1;
-                  float* nps = copy_float_array(ps, N);
-                  float* npc = copy_float_array(*pc, 1);
-                  committed_trajectory.states.push_back(nps);
-                  committed_trajectory.controls.push_back(npc);
+                  committed_trajectory.states.push_back(sc);
+                  committed_trajectory.controls.push_back(cc);
                   committed_trajectory.total_variation += t1;
                 }
                 else
@@ -678,72 +659,44 @@ class rrts_c
                   new_root_state = sc;
                   child_of_new_root_vertex = pv;
                   new_root_found = true;
-                  last_committed_vertex = vc.parent;
                   break;
                 }
               }
             }
           }
           else
-          {
-            traj.clear();
             return 2;
-          }
-          traj.clear();
         }
       }
       // i.e., lower_bound_vertex = new root
       // no new child
       if(!new_root_found)
       {
-        new_root_state = *(lower_bound_vertex->state);
+        new_root_state = lower_bound_vertex->state;
         new_root_found = true;
         child_of_new_root_vertex = NULL;
-        last_committed_vertex = lower_bound_vertex;
       }
 
       if(new_root_found)
       {
-        if(last_committed_vertex_out && last_committed_vertex){
-          (*last_committed_vertex_out) = last_committed_vertex;
-        }
         // new_root is inside goal
         if(!child_of_new_root_vertex)
         {
-          cout << "new root inside goal!" << endl;
-
-          /*if(last_committed_vertex_out && last_committed_vertex){
-            (*last_committed_vertex_out) = NULL;
-          }*/
-
-          for(auto& pv : list_vertices){
-            if(pv!=last_committed_vertex) 
-              delete pv;
-          }
-          list_vertices.clear();
-          num_vertices =  0;
+          clear_list_vertices();
           if(kdtree)
             kd_free(kdtree);
           kdtree = kd_create(N);
           
-          root = new vertex( new state(new_root_state));
-          root->cost_from_root = zero_cost->clone();
-          root->cost_from_parent = zero_cost->clone();
-          
-          insert_into_kdtree(*root);
+          set_root(new_root_state);
           update_all_costs();
           return 0;
         }
         else
         {
-          if(last_committed_vertex_out && last_committed_vertex){
-            (*last_committed_vertex_out) = last_committed_vertex;
-          }
-
           mark_descendent_vertices(*child_of_new_root_vertex);
 
           vector<vertex*> surviving_vertices;
-          delete_unmarked_vertices(surviving_vertices, last_committed_vertex);
+          delete_unmarked_vertices(surviving_vertices);
 
           list_vertices.clear();
           num_vertices = 0;
@@ -751,28 +704,24 @@ class rrts_c
             kd_free(kdtree);
           kdtree = kd_create(N);
 
-          root = new vertex( new state(new_root_state));
-          root->cost_from_root = zero_cost->clone();
-          root->cost_from_parent = zero_cost->clone();
+          set_root(new_root_state);
 
           if(child_of_new_root_vertex->edge_from_parent)
             delete child_of_new_root_vertex->edge_from_parent;
 
           trajectory_t new_root_traj;
-          optimization_data_t* opt_data = NULL;
-          if(system->extend_to(&new_root_state, child_of_new_root_vertex->state, check_obstacles, new_root_traj, opt_data))
-          {
-            new_root_traj.clear();
-            delete opt_data;
+          optimization_data_t opt_data = NULL;
+          if(system.extend_to(new_root_state, child_of_new_root_vertex->state, check_obstacles, new_root_traj, opt_data))
             return 5;
-          }
-          child_of_new_root_vertex->edge_from_parent = new edge(&new_root_state, child_of_new_root_vertex->state, *system, opt_data);
+          
+          cost_t child_of_new_root_edge_cost = system.evaluate_extend_cost(new_root_state, child_of_new_root_vertex->state, opt_data); 
+          child_of_new_root_vertex->edge_from_parent = new edge(&new_root_state, child_of_new_root_vertex->state,
+              child_of_new_root_edge_cost, opt_data);
           child_of_new_root_vertex->parent = root;
           child_of_new_root_vertex->cost_from_parent = child_of_new_root_vertex->edge_from_parent->cost;
           root->children.insert(child_of_new_root_vertex);
-          new_root_traj.clear();
-
-          insert_into_kdtree(*root);
+          
+          // root was already inserted in set_root
           for(auto& pv : surviving_vertices)
             insert_into_kdtree(*pv);
 

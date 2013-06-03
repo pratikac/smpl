@@ -39,39 +39,48 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       bool return_trajectory = true;
       if(opt_data.turning_radius < 0)
       {
-        if(!evaluate_extend_cost(si, sf, opt_data))
+        if(evaluate_extend_cost(si, sf, opt_data) < 0)
           return 1;
       }
-      int& best_turning_radius = opt_data->turning_radius;
+      int& best_turning_radius = opt_data.turning_radius;
       extend_dubins_all(si.x, sf.x, return_trajectory, traj, turning_radii[best_turning_radius]);
       return 0;
     }
     
-    float evaluate_extend_cost(const state_t& si, const state_t& sf, dubins_optimization_data_t& opt_data)
+    float evaluate_extend_cost(const state_t& si, const state_t& sf,
+        dubins_optimization_data_t& opt_data)
     {
-      float min_cost = FLT_MAX;
-
-      int& best_turning_radius = opt_data->turning_radius;
-      best_turning_radius = -1;
-
-      bool return_trajectory = false;
       trajectory_t traj;
-      for(int i=num_turning_radii-1; i >=0; i--)
+      if(opt_data.turning_radius >= 0)
       {
-        float tr = turning_radii[i];
-        float cost = extend_dubins_all(si.x, sf.x, return_trajectory, traj, tr);
-        if(cost > 0)
+        float tr = turning_radii[opt_data.turning_radius];
+        return extend_dubins_all(si.x, sf.x, false, traj, tr);
+      }
+      else
+      {
+        float min_cost = FLT_MAX;
+
+        int& best_turning_radius = opt_data.turning_radius;
+        best_turning_radius = -1;
+
+        bool return_trajectory = false;
+        for(int i=num_turning_radii-1; i >=0; i--)
         {
-          if(cost < min_cost)
+          float tr = turning_radii[i];
+          float cost = extend_dubins_all(si.x, sf.x, return_trajectory, traj, tr);
+          if(cost > 0)
           {
-            min_cost = cost;
-            best_turning_radius = i;
+            if(cost < min_cost)
+            {
+              min_cost = cost;
+              best_turning_radius = i;
+            }
           }
         }
+        if((min_cost < 0) || (min_cost > FLT_MAX/2.0))
+          return -1;
+        return min_cost;
       }
-      if((min_cost < 0) || (min_cost > FLT_MAX/2.0))
-        return -1;
-      return min_cost;
     }
 
     float extend_dubins_spheres(const float si[3], const float sf[3], int comb_no, float turning_radius,

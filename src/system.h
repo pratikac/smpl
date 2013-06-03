@@ -257,8 +257,9 @@ class system_c
         state sr;
         sample_in_goal(sr);
         sr.print(cout, "sampled:","\n");
-
-        extend_to(&origin, &sr, true, traj, NULL);
+        
+        opt_data_t opt_data;
+        extend_to(origin, sr, true, traj, opt_data);
         cout<<"cost: "<< traj.total_variation<<endl;
         traj.print();
         getchar();
