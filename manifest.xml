@@ -11,9 +11,5 @@
 
   <depend package="roscpp"/>
 
-  <export>
-    <cpp cflags="-I${prefix}/src/" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -lrrts_corep"/>
-  </export>
-
 </package>
 
