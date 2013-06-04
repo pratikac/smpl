@@ -26,7 +26,7 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
 
     float delta_distance;
 
-    single_integrator_c() : delta_distance(0.5)
+    single_integrator_c() : delta_distance(0.05)
   {
   };
 
