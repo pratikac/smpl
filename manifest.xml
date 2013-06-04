@@ -1,18 +1,15 @@
 <package>
-  <description brief="rrts_corep">
+  <description brief="smpl">
 
-     rrts_corep
+     smpl
 
   </description>
-  <author>Valerio</author>
-  <license>BSD</license>
+  <author>Pratik</author>
+  <license>GPLv3</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/rrts_core</url>
+  <url>http://ros.org/wiki/smpl</url>
 
-  <depend package="rosconsole"/>
   <depend package="roscpp"/>
-  <depend package="rospy" />
-  <depend package="tf" />
 
   <export>
     <cpp cflags="-I${prefix}/src/" lflags="-L${prefix}/lib -Wl,-rpath,${prefix}/lib -lrrts_corep"/>

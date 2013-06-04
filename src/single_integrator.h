@@ -1,5 +1,5 @@
-#ifndef __SINGLE_INTEGRATOR_H__
-#define __SINGLE_INTEGRATOR_H__
+#ifndef __single_integrator_h__
+#define __single_integrator_h__
 
 #include <float.h>
 #include <iostream>
@@ -27,8 +27,8 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
     float delta_distance;
 
     single_integrator_c() : delta_distance(0.5)
-    {
-    };
+  {
+  };
 
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, single_integrator_opt_data_t& opt_data)

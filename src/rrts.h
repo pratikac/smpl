@@ -24,7 +24,7 @@ class vertex_c
   public:
     typedef vertex_c<system_tt> vertex;
     typedef edge_c<system_tt> edge;
-    
+
     typedef typename system_tt::state state_t;
     typedef typename system_tt::control control_t;
     typedef typename system_tt::opt_data_t opt_data_t;
@@ -34,9 +34,9 @@ class vertex_c
     vertex* parent;
     state_t state;
     set<vertex*> children;
-    
+
     int mark;
-    
+
     cost_t cost_from_root;
     cost_t cost_from_parent;
     edge* edge_from_parent;
@@ -79,7 +79,7 @@ class edge_c
 {
   public:
     typedef edge_c<system_tt> edge;
-    
+
     typedef typename system_tt::state state;
     typedef typename system_tt::control control;
     typedef typename system_tt::opt_data_t opt_data_t;
@@ -117,7 +117,7 @@ class rrts_c
     typedef typename system_tt::trajectory trajectory_t;
     typedef typename system_tt::cost_t cost_t;  
     const static size_t num_dim = system_tt::N;
-    
+
     typedef vertex_c<system_tt> vertex;
     typedef edge_c<system_tt> edge;
     typedef system_tt system_t;
@@ -158,7 +158,7 @@ class rrts_c
         kd_free(kdtree);
       clear_list_vertices();
     }
-    
+
     void clear_list_vertices()
     {
       for(auto& i : list_vertices)
@@ -174,7 +174,7 @@ class rrts_c
       root->edge_from_parent = NULL;
       root->parent = NULL;
       root->children.clear();
-      
+
       insert_into_kdtree(*root);
       //update_best_vertex(*root);
       return 0; 
@@ -189,13 +189,13 @@ class rrts_c
       if(kdtree)
         kd_free(kdtree);
       kdtree = kd_create(num_dim);
-     
+
       set_root(rs);
       root->state.print(cout,"set root to:", "\n");
 
       return 0;
     }
-    
+
     int iteration()
     {
       // 1. sample
@@ -219,16 +219,16 @@ class rrts_c
       edge* edge_from_parent = NULL;
       if(find_best_parent(sr, near_vertices, best_parent, edge_from_parent))
         return 3;
-      
+
       // 4. draw edge to parent from new vertex
       vertex* new_vertex = insert_edge(*best_parent, *edge_from_parent);
       if(!new_vertex)
         return 4;
-      
+
       // 5. rewire
       if(near_vertices.size())
         rewire_vertices(*new_vertex, near_vertices);
-      
+
       return 0;
     }
 
@@ -243,16 +243,16 @@ class rrts_c
       num_vertices++;
       return 0;
     }
-    
+
     vertex& get_root_vertex() {return *root;};
     cost_t get_best_cost()    {return lower_bound_cost;};
     vertex& get_best_vertex() {return *lower_bound_vertex;}
-   
+
     int get_best_trajectory(trajectory_t& best_traj)
     {
       if(!lower_bound_vertex)
         return 1;
-      
+
       best_traj.clear();
       bool check_obstacles = false;
       vertex* vc = lower_bound_vertex;
@@ -342,17 +342,17 @@ class rrts_c
       insert_edge(vs, e, *new_vertex);
       return new_vertex;
     }
-    
+
     int insert_edge(vertex& vs, edge& e, vertex& ve)
     {
       ve.cost_from_parent = e.cost;
       ve.cost_from_root = vs.cost_from_root + ve.cost_from_parent;
       update_best_vertex(ve);
-      
+
       if(ve.edge_from_parent)
         delete ve.edge_from_parent;
       ve.edge_from_parent = &e;
-      
+
       if(ve.parent)
         ve.parent->children.erase(&ve);
       ve.parent = &vs;
@@ -365,7 +365,7 @@ class rrts_c
     {
       return (p1.second < p2.second);
     }
-    
+
     int find_best_parent(const state& si, const vector<vertex*>& near_vertices,
         vertex*& best_parent, edge*& best_edge)
     {
@@ -381,11 +381,11 @@ class rrts_c
         if(system.evaluate_extend_cost(v.state, si, opt_data, edge_cost))
           continue;
         cost_t v_cost = v.cost_from_root + edge_cost;
-        
+
         vertex_cost_pairs.push_back(make_pair(pv, v_cost));
         vertex_map.insert(make_pair(pv, make_tuple(edge_cost, v_cost, opt_data)));
       }
-      
+
       // 2. sort using compare function of cost_t
       sort(vertex_cost_pairs.begin(), vertex_cost_pairs.end(), compare_vertex_cost_pairs);
 
@@ -427,7 +427,7 @@ class rrts_c
       }
       return 0;
     }
-    
+
     int rewire_vertices(vertex& v, const vector<vertex*>& near_vertices)
     {
       bool check_obstacles = true;
@@ -461,7 +461,7 @@ class rrts_c
         find_descendents(*pc);
       return 0;
     }
-    
+
     int recompute_cost(vertex& v)
     {
       update_branch_cost(v,0);  
@@ -472,7 +472,7 @@ class rrts_c
     {
       return system.is_safe_trajectory(traj);
     }
-   
+
     int mark_descendent_vertices(vertex& v)
     {
       v.mark = 1;
@@ -492,7 +492,7 @@ class rrts_c
           surviving_vertices.push_back(pv);
         }
         else
-            delete pv;
+          delete pv;
       }
       return 0;
     }
@@ -537,8 +537,8 @@ class rrts_c
         root->mark = 0;
 
         for(auto& prc : root->children)
-            check_and_mark_children(*prc);
-        
+          check_and_mark_children(*prc);
+
         list<vertex*> surviving_vertices;
         for(auto& pv : list_vertices)
         {
@@ -547,7 +547,7 @@ class rrts_c
           else
             delete pv;
         }
-        
+
         if(kdtree)
           kd_free(kdtree);
         kdtree = kd_create(num_dim);
@@ -556,7 +556,7 @@ class rrts_c
         num_vertices = 0;
         for(auto& pv : surviving_vertices)
           insert_into_kdtree(*pv); 
-        
+
         update_all_costs();
       }
       return 0;
@@ -595,7 +595,7 @@ class rrts_c
     {
       if(!lower_bound_vertex)
         return 1;
-      
+
       // 0. if root is inside goal
       if(system.is_in_goal(root->state))
         return 0;
@@ -606,7 +606,7 @@ class rrts_c
 
       bool check_obstacles = false;
       float length = 0;
-      
+
       state new_root_state;
       vertex* child_of_new_root_vertex = NULL;
       bool new_root_found = false;
@@ -681,7 +681,7 @@ class rrts_c
           if(kdtree)
             kd_free(kdtree);
           kdtree = kd_create(num_dim);
-          
+
           set_root(new_root_state);
           update_all_costs();
           return 0;
@@ -708,7 +708,7 @@ class rrts_c
           opt_data_t opt_data;
           if(system.extend_to(new_root_state, child_of_new_root_vertex->state, check_obstacles, new_root_traj, opt_data))
             return 5;
-          
+
           cost_t child_of_new_root_edge_cost;
           if(system.evaluate_extend_cost(new_root_state, child_of_new_root_vertex->state, opt_data, child_of_new_root_edge_cost))
             return 6;
@@ -717,7 +717,7 @@ class rrts_c
           child_of_new_root_vertex->parent = root;
           child_of_new_root_vertex->cost_from_parent = child_of_new_root_vertex->edge_from_parent->cost;
           root->children.insert(child_of_new_root_vertex);
-          
+
           // root was already inserted in set_root
           for(auto& pv : surviving_vertices)
             insert_into_kdtree(*pv);

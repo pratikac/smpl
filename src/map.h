@@ -13,11 +13,11 @@ class map_c
     virtual int sample_free_space(float[N])
     {
       return 1;
-    };
+    }
     virtual bool is_in_collision(const float[N])
     {
       return false;
-    };
+    }
     virtual float get_state_cost(const float s[N])
     { 
       return 0;

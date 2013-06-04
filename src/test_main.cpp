@@ -12,13 +12,14 @@ int main()
 {
   //typedef system_c<single_integrator_c<3>, map_c<3>, cost_c> system_t;
   typedef system_c<dubins_c, map_c<3>, cost_c> system_t;
+  
   typedef system_t::state state;
   typedef typename system_t::control control;
   typedef typename system_t::trajectory trajectory;
   typedef typename system_t::region_t region;
+  
   rrts_c<system_t> rrts;
 
-  
   float zero[3] = {0};
   float size[3] = {100,100,2*M_PI};
   rrts.system.operating_region = region(zero, size);
