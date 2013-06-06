@@ -127,7 +127,7 @@ class trajectory_c
     int print(const char* prefix="traj")
     {
       print_states("states");
-      //print_controls("controls");
+      print_controls("controls");
       return 0;
     }
     int print_states(const char* prefix="")

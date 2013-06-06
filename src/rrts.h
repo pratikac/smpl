@@ -263,7 +263,7 @@ class rrts_c
         {
           trajectory_t traj_from_parent;
           system.extend_to(vparent->state, vc->state, check_obstacles,
-              traj_from_parent, &vc->edge_from_parent->opt_data);
+              traj_from_parent, vc->edge_from_parent->opt_data);
           traj_from_parent.reverse();
           best_traj.append(traj_from_parent);
         }
