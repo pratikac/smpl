@@ -269,6 +269,7 @@ class rrts_c
         }
         vc = vparent;
       }
+      best_traj.reverse();
       return 0;
     }
 
@@ -454,14 +455,6 @@ class rrts_c
       return 0;
     }
 
-    int find_descendents(vertex& v)
-    {
-      v.mark = 1;
-      for(auto& pc : v.children)
-        find_descendents(*pc);
-      return 0;
-    }
-
     int recompute_cost(vertex& v)
     {
       update_branch_cost(v,0);  
@@ -478,9 +471,9 @@ class rrts_c
       v.mark = 1;
       for(auto& pc : v.children)
         mark_descendent_vertices(*pc);
-
       return 0;
     }
+    
     int delete_unmarked_vertices(vector<vertex*>& surviving_vertices)
     {
       surviving_vertices.clear();
@@ -496,14 +489,13 @@ class rrts_c
       }
       return 0;
     }
+    
     int mark_vertex_and_remove_from_parent(vertex& v)
     {
       v.mark = 1;
       v.parent->children.erase(&v);
       for(auto& pc : v.children)
-      {
         mark_vertex_and_remove_from_parent(*pc);
-      }
       return 0;
     }
 
@@ -583,6 +575,7 @@ class rrts_c
       }
       return 0;
     }
+
     int print_marks()
     {
       cout<<"marks: ";
@@ -591,6 +584,7 @@ class rrts_c
       cout<<endl;
       return 0;
     }
+    
     int switch_root(const float& distance, trajectory_t& committed_trajectory)
     {
       if(!lower_bound_vertex)
@@ -706,16 +700,20 @@ class rrts_c
 
           trajectory_t new_root_traj;
           opt_data_t opt_data;
-          if(system.extend_to(new_root_state, child_of_new_root_vertex->state, check_obstacles, new_root_traj, opt_data))
+          if(system.extend_to(new_root_state, child_of_new_root_vertex->state,
+                check_obstacles, new_root_traj, opt_data))
             return 5;
 
           cost_t child_of_new_root_edge_cost;
-          if(system.evaluate_extend_cost(new_root_state, child_of_new_root_vertex->state, opt_data, child_of_new_root_edge_cost))
+          if(system.evaluate_extend_cost(new_root_state, child_of_new_root_vertex->state,
+                opt_data, child_of_new_root_edge_cost))
             return 6;
-          child_of_new_root_vertex->edge_from_parent = new edge(&new_root_state, &child_of_new_root_vertex->state,
+          child_of_new_root_vertex->edge_from_parent = new edge(&new_root_state,
+              &child_of_new_root_vertex->state,
               child_of_new_root_edge_cost, opt_data);
           child_of_new_root_vertex->parent = root;
-          child_of_new_root_vertex->cost_from_parent = child_of_new_root_vertex->edge_from_parent->cost;
+          child_of_new_root_vertex->cost_from_parent = 
+            child_of_new_root_vertex->edge_from_parent->cost;
           root->children.insert(child_of_new_root_vertex);
 
           // root was already inserted in set_root

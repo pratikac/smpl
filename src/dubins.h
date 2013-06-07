@@ -24,14 +24,14 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
 
     float delta_distance;
 
-#define num_turning_radii   (3)
+#define num_turning_radii   (1)
     float turning_radii[num_turning_radii];
 
     dubins_c() : delta_distance(0.05)
     {
       turning_radii[0] = 3.5;
-      turning_radii[1] = 6;
-      turning_radii[2] = 8;
+      //turning_radii[1] = 6;
+      //turning_radii[2] = 8;
     };
 
     int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, dubins_optimization_data_t& opt_data)
