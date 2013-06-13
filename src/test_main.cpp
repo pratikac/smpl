@@ -33,7 +33,7 @@ int main()
   rrts.initialize(origin);
 
   time_t ts=time(0), te;
-  int max_iterations = 1000, diter=max_iterations/10;
+  int max_iterations = 1e6, diter=max_iterations/10;
   trajectory traj;
   for(int i=0; i<max_iterations; i++)
   {
