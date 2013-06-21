@@ -1,5 +1,6 @@
 # Create a shared library lib${POD_NAME}.so with all source files
 file(GLOB cc_files *.cc) 
+file(GLOB cc_files *.c) 
 file(GLOB cpp_files *.cpp)
 set(all_sources ${cpp_files} ${cc_files})
 add_library(${POD_NAME} SHARED ${all_sources})
