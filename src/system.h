@@ -8,6 +8,7 @@
 #include <vector>
 #include <ostream>
 #include <string.h>
+#include <cstdlib>
 using namespace std;
 
 
@@ -44,44 +45,64 @@ class region_c
     }
 };
 
+template<size_t dim_t>
 class cost_c
 {
   public:
-    float val;
-    cost_c() : val(FLT_MAX/2){}
-    cost_c(float xin) : val(xin) {}
-    cost_c(const cost_c& c2) : val(c2.val){}
+    const static size_t dim = dim_t;
+    vector<float> val;
     
+    cost_c(float x=FLT_MAX/2){
+      val = vector<float>(dim, x);
+    }
+    cost_c(vector<float>& xin) : val(xin) {}
+    cost_c(const cost_c& c2) : val(c2.val){}
+    cost_c(float c, int d){
+      val = vector<float>(dim, FLT_MAX/2);
+      val[d] = c;
+    }
     virtual ~cost_c(){}
 
     virtual cost_c& operator+=(const cost_c& rhs)
     {
-      val += rhs.val;
+      for(size_t i=0; i<dim; i++)
+        val[i] += rhs.val[i];
       return *this;
     }
     virtual cost_c operator+(const cost_c& c2) const
     {
       cost_c toret = *this;
-      toret.val += c2.val;
+      for(size_t i=0; i<dim; i++)
+        toret.val[i] += c2.val[i];
       return toret;
     }
     virtual bool operator<(const cost_c& rhs) const
     {
-      return (val < rhs.val);
+      for(size_t i=0; i<dim; i++){
+        if(val[i] < rhs.val[i])
+          return true;
+        else if(val[i] > rhs.val[i])
+          return false;
+      }
+      return true;
     }
     virtual bool operator>(const cost_c& rhs) const
     {
-      return (val > rhs.val);
+      return !(*this < rhs);
     }
     virtual float difference(const cost_c& c2) const
     {
-      return fabs(val-c2.val);
+      float t1 = 0;
+      for(size_t i=0; i<dim; i++)
+        t1 += (val[i]-c2.val[i])*(val[i]-c2.val[i]);
+      return sqrt(t1);
     }
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const
     {
       if(prefix)
         os<<prefix;
-      os<<val;
+      for(auto& vi : val)
+        os<<vi<<",";
       if(suffix)
         os<<suffix;
       return os;
@@ -219,23 +240,26 @@ class system_c
         opt_data_t& opt_data, cost_t& extend_cost)
     {
       float total_variation = dynamical_system.evaluate_extend_cost(si, sf, opt_data);
-      extend_cost = cost_t(total_variation);
+      extend_cost = cost_t(total_variation, extend_cost.dim-1);
       if(total_variation > 0)
         return 0;
       return 1;
     }
 
-    virtual float get_state_cost(const state& s)
+    virtual cost_t get_state_cost(const state& s)
     {
-      return obstacle_map.get_state_cost(s.x);
+      cost_t t1;
+      float& t2 = t1.val.back();
+      t2 = obstacle_map.get_state_cost(s.x);
+      return t1;
     };
 
     virtual cost_t evaluate_trajectory_cost(trajectory& traj)
     {
-      float c=0;
+      cost_t c(0);
       for(auto& ps : traj.states)
         c += get_state_cost(state(ps));
-      return cost_t(c);
+      return c;
     }
    
     virtual cost_t get_zero_cost()

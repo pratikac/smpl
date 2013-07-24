@@ -5,6 +5,7 @@ file(GLOB cpp_files *.cpp)
 set(all_sources ${cpp_files} ${cc_files})
 add_library(${POD_NAME} SHARED ${all_sources})
 
+add_executable(test_main test_main.cpp kdtree.c)
 
 # c++11 experimental flags
 set(CMAKE_CXX_FLAGS "-std=c++0x -o3")

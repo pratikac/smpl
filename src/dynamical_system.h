@@ -54,12 +54,12 @@ class state_c
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const
     {
       if(prefix)
-        os<<prefix<<" (";
+        os<<prefix<<" [";
       else
-        os<<" (";
+        os<<" [";
       for(size_t i=0; i<N-1; i++)
         os<<x[i]<<",";
-      os<<x[N-1]<<")";
+      os<<x[N-1]<<"]";
       if(suffix)
         os<<suffix;
       return os;

@@ -10,8 +10,8 @@ using namespace std;
 
 int main()
 {
-  //typedef system_c<single_integrator_c<3>, map_c<3>, cost_c> system_t;
-  typedef system_c<dubins_c, map_c<3>, cost_c> system_t;
+  //typedef system_c<single_integrator_c<3>, map_c<3>, cost_c<1> > system_t;
+  typedef system_c<dubins_c, map_c<3>, cost_c<1> > system_t;
   
   typedef system_t::state state;
   typedef typename system_t::control control;
@@ -33,13 +33,13 @@ int main()
   rrts.initialize(origin);
 
   time_t ts=time(0), te;
-  int max_iterations = 1e6, diter=max_iterations/10;
+  int max_iterations = 1e4, diter=max_iterations/10;
   trajectory traj;
   for(int i=0; i<max_iterations; i++)
   {
     rrts.iteration();
     if(i%diter == 0)
-      cout<<i<<" "<<rrts.get_best_cost().val<<endl;
+      cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
     //cout<<"check_tree: "<< rrts.check_tree() << endl;
 #if 0
     if(rrts.system.is_in_goal(rrts.root->state))
@@ -56,7 +56,7 @@ int main()
     }
 #endif
   }
-  cout<<rrts.get_best_cost().val<<endl;
+  cout<<rrts.get_best_cost().val[0]<<endl;
   trajectory best_traj;
   rrts.get_best_trajectory(best_traj);
   best_traj.print();
