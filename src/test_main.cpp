@@ -72,7 +72,7 @@ int main()
 
 int main()
 {
-  typedef system_c<double_integrator, map_c<4>, cost_c<1> > system_t;
+  typedef system_c<double_integrator_c, map_c<4>, cost_c<1> > system_t;
   
   typedef system_t::state state;
   typedef typename system_t::control control;
