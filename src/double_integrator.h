@@ -25,9 +25,6 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef typename dynamical_system_t::trajectory_t trajectory_t;
     typedef double_integrator_opt_data_c double_integrator_opt_data_t;
 
-    const static float um = 1;
-    const static float up = -1;
-
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, double_integrator_opt_data_t& opt_data)
     {
@@ -44,6 +41,8 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       if(opt_data.is_initialized)
         return opt_data.T;
 
+      float um=1;
+      float up=-um;
       float u111, u121;
       float u211, u221;
       float x1f = sf[0] - si[0];
