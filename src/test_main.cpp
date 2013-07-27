@@ -82,11 +82,11 @@ int main()
   rrts_c<system_t> rrts;
 
   float zero[4] = {0};
-  float size[4] = {100,100,5,5};
+  float size[4] = {100};
   rrts.system.operating_region = region(zero, size);
 
-  float gc[4] = {10,10,1,0};
-  float gs[4] = {1,1,0.1,0.1};
+  float gc[4] = {10,0,4,0};
+  float gs[4] = {0.1,0.1,0.1,0.1};
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
   
