@@ -34,7 +34,7 @@ class region_c
       }
     }
     
-    bool is_inside(const state_c<N>& sin) const
+    virtual bool is_inside(const state_c<N>& sin) const
     {
       for(size_t i=0; i<N; i++)
       {
@@ -58,11 +58,13 @@ class cost_c
     cost_c(vector<float>& xin) : val(xin) {}
     cost_c(const cost_c& c2) : val(c2.val){}
     cost_c(float c, int d){
-      val = vector<float>(dim, FLT_MAX/2);
       val[d] = c;
     }
     virtual ~cost_c(){}
 
+    float& operator[](int d){
+      return val[d];
+    }
     virtual cost_c& operator+=(const cost_c& rhs)
     {
       for(size_t i=0; i<dim; i++)
