@@ -8,6 +8,8 @@
 #include "rrts.h"
 #include "dynamical_system.h"
 #include "map.h"
+#include "double_integrator_mathematica.h"
 #include "system.h"
+#include "double_integrator.h"
 
 #endif //__/HOME/PRATIK/CODE/SMPL/SRC/SMPL.H__ 

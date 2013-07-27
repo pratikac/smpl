@@ -2,11 +2,17 @@
 #define __double_integrator_h__
 
 #include "dynamical_system.h"
+#include "double_integrator_mathematica.h"
 
 class double_integrator_opt_data_c : public optimization_data_c
 {
   public:
-    double_integrator_opt_data_c() {}
+    float u111, u121, u211, u221;
+    float t11, t21, t221, t222, t121, t122; 
+    float T1, T2, T;
+    bool is_initialized;
+
+    double_integrator_opt_data_c() : is_initialized(false) {}
     ~double_integrator_opt_data_c(){}
 };
 
@@ -19,53 +25,67 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef typename dynamical_system_t::trajectory_t trajectory_t;
     typedef double_integrator_opt_data_c double_integrator_opt_data_t;
 
+    const static float um = 1;
+    const static float up = -1;
+
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, double_integrator_opt_data_t& opt_data)
     {
+      if(!opt_data.is_initialized)
+        if(evaluate_extend_cost(si, sf, opt_data) < 0)
+          return 1;
+      
       return 0;
     }
     
     float evaluate_extend_cost(const state_t& si, const state_t& sf,
         double_integrator_opt_data_t& opt_data)
     {
-      float u1m,u1p,u2m, u2p;
-      float vx1f = sf[0] - si[0];
-      float vdx1f = sf[2]-si[2];
-      float vx2f = sf[1] - si[1];
-      float vdx2f = sf[3] - si[3];
+      if(opt_data.is_initialized)
+        return opt_data.T;
+
+      float u111, u121;
+      float u211, u221;
+      float x1f = sf[0] - si[0];
+      float dx1f = sf[2]-si[2];
+      float x2f = sf[1] - si[1];
+      float dx2f = sf[3] - si[3];
       
-      if(vdx1f > 0){
-        u1m = 1;
-        u1p = -1;
+      if(dx1f > 0){
+        u111 = um;
+        u121 = um;
       }
       else{
-        u1m = -1;
-        u1p = 1;
+        u111 = up;
+        u121 = up;
       }
-      if(vdx2f > 0){
-        u2m = 1;
-        u2p = -1;
+      if(dx2f > 0){
+        u211 = um;
+        u221 = um;
       }
       else{
-        u2m = -1;
-        u2p = 1;
+        u211 = up;
+        u221 = up;
       }
-
-      float T1 = (vdx1f - (u1m*sqrt(power(vdx1f,2) - 2*u1p*vx1f))/sqrt(u1m*(u1m - u1p)) + 
-          (u1p*sqrt(power(vdx1f,2) - 2*u1p*vx1f))/sqrt(u1m*(u1m - u1p)))/u1p;
-    
-      float T2 = (vdx2f - (u2m*sqrt(power(vdx2f,2) - 2*u2p*vx2f))/sqrt(u2m*(u2m - u2p)) + 
-            (u2p*sqrt(power(vdx2f,2) - 2*u2p*vx2f))/sqrt(u2m*(u2m - u2p)))/u2p;
       
-      float T = max(T1, T2);
-      if(T == T1)
-      {
+      opt_data.u111 = u111;
+      opt_data.u121 = u121;
+      opt_data.u211 = u211;
+      opt_data.u221 = u221;
 
-      }
-      else
-      {
+      opt_data.t11 = mt11;
+      opt_data.t21 = mt21;
+      
+      opt_data.t121 = mt121;
+      opt_data.t122 = mt122;
+      opt_data.t221 = mt221;
+      opt_data.t222 = mt222;
 
-      }
+      opt_data.T1 = mT1;
+      opt_data.T2 = mT2;
+      opt_data.T = max(opt_data.T1, opt_data.T2);
+      opt_data.is_initialized = true;
+      return  opt_data.T;
     }
 }; 
 
