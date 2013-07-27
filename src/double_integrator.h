@@ -16,7 +16,7 @@ class double_integrator_opt_data_c : public optimization_data_c
     ~double_integrator_opt_data_c(){}
 };
 
-class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, optimization_data_c>
+class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, double_integrator_opt_data_c>
 {
   public:
     typedef dynamical_system_c<state_c<4>, control_c<2>, optimization_data_c> dynamical_system_t;
@@ -24,6 +24,8 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef typename dynamical_system_t::control_t control_t;
     typedef typename dynamical_system_t::trajectory_t trajectory_t;
     typedef double_integrator_opt_data_c double_integrator_opt_data_t;
+    
+    double_integrator_c() {}
 
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, double_integrator_opt_data_t& opt_data)
@@ -66,7 +68,14 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         u211 = up;
         u221 = up;
       }
-      
+
+      float T = max(mT1, mT2);
+      //cout<<"T: "<< T << endl;
+      if(T != T)
+      {
+        //cout<<"returned"<<endl;
+        return -1;
+      }
       opt_data.u111 = u111;
       opt_data.u121 = u121;
       opt_data.u211 = u211;
@@ -84,6 +93,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       opt_data.T2 = mT2;
       opt_data.T = max(opt_data.T1, opt_data.T2);
       opt_data.is_initialized = true;
+      //cout<<"T: "<< opt_data.T << endl;
       return  opt_data.T;
     }
 }; 

@@ -13,7 +13,7 @@ using namespace std;
 int main()
 {
   //typedef system_c<single_integrator_c<3>, map_c<3>, cost_c<1> > system_t;
-  //typedef system_c<dubins_c, map_c<3>, cost_c<1> > system_t;
+  typedef system_c<dubins_c, map_c<3>, cost_c<1> > system_t;
   
   typedef system_t::state state;
   typedef typename system_t::control control;

@@ -58,6 +58,7 @@ class cost_c
     cost_c(vector<float>& xin) : val(xin) {}
     cost_c(const cost_c& c2) : val(c2.val){}
     cost_c(float c, int d){
+      val = vector<float>(dim, FLT_MAX/2);
       val[d] = c;
     }
     virtual ~cost_c(){}
@@ -242,10 +243,11 @@ class system_c
         opt_data_t& opt_data, cost_t& extend_cost)
     {
       float total_variation = dynamical_system.evaluate_extend_cost(si, sf, opt_data);
-      extend_cost = cost_t(total_variation, extend_cost.dim-1);
-      if(total_variation > 0)
-        return 0;
-      return 1;
+      if(total_variation < 0)
+        return 1;
+      extend_cost = cost_t();
+      extend_cost[extend_cost.dim-1] = total_variation;
+      return 0;
     }
 
     virtual cost_t get_state_cost(const state& s)
