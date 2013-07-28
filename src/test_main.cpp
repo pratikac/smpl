@@ -9,8 +9,8 @@ using namespace std;
 
 int test_single_integrator()
 {
-  //typedef system_c<single_integrator_c<3>, map_c<3>, cost_c<1> > system_t;
-  typedef system_c<dubins_c, map_c<3>, cost_c<1> > system_t;
+  typedef system_c<single_integrator_c<3>, map_c<3>, cost_c<1> > system_t;
+  //typedef system_c<dubins_c, map_c<3>, cost_c<1> > system_t;
   
   typedef system_t::state state;
   typedef typename system_t::control control;
@@ -36,7 +36,8 @@ int test_single_integrator()
   state origin(zero);
   rrts.initialize(origin);
 
-  time_t ts=time(0), te;
+  tt clock;
+  clock.tic();
   int max_iterations = 1e3, diter=max_iterations/10;
   trajectory traj;
   for(int i=0; i<max_iterations; i++)
@@ -60,13 +61,14 @@ int test_single_integrator()
     }
 #endif
   }
+  cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
+
   rrts.plot_environment();
   rrts.plot_tree();
   rrts.plot_best_trajectory();
   bot_lcmgl_switch_buffer(lcmgl);
   cout<<rrts.get_best_cost().val[0]<<endl;
   
-  cout<<"time: "<< difftime(time(0), ts)<<endl;
 
   return 0;
 }
@@ -98,7 +100,8 @@ int test_double_integrator()
   state origin(zero);
   rrts.initialize(origin, lcmgl);
 
-  time_t ts=time(0), te;
+  tt clock;
+  clock.tic();
   int max_iterations = 1e3, diter=max_iterations/10;
   trajectory traj;
   for(int i=0; i<max_iterations; i++)
@@ -108,14 +111,13 @@ int test_double_integrator()
       cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
     //cout<<"check_tree: "<< rrts.check_tree() << endl;
   }
+  cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
   rrts.plot_environment();
   rrts.plot_tree();
   rrts.plot_best_trajectory();
   bot_lcmgl_switch_buffer(lcmgl);
   cout<<rrts.get_best_cost().val[0]<<endl;
   
-  cout<<"time: "<< difftime(time(0), ts)<<endl;
-
   return 0;
 }
 

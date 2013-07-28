@@ -13,6 +13,7 @@
 #include <unordered_map>
 
 #include "system.h"
+#include "utils.h"
 
 #include <lcm/lcm.h>
 #include <bot_core/bot_core.h>

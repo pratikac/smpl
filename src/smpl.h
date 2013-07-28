@@ -11,5 +11,6 @@
 #include "double_integrator_mathematica.h"
 #include "system.h"
 #include "double_integrator.h"
+#include "utils.h"
 
 #endif //__/HOME/PRATIK/CODE/SMPL/SRC/SMPL.H__ 
