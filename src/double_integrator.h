@@ -26,6 +26,14 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef double_integrator_opt_data_c double_integrator_opt_data_t;
     
     double_integrator_c() {}
+    
+    int get_plotter_state(const state_t& s, float* ps)
+    {
+      ps[0] = s[0];
+      ps[1] = s[1];
+      ps[2] = 0;
+      return 0;
+    }
 
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, double_integrator_opt_data_t& opt_data)
@@ -33,7 +41,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       if(!opt_data.is_initialized)
         if(evaluate_extend_cost(si, sf, opt_data) < 0)
           return 1;
-      
+       
       return 0;
     }
     

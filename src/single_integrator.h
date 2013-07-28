@@ -26,9 +26,21 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
 
     float delta_distance;
 
-    single_integrator_c() : delta_distance(0.05)
-  {
-  };
+    single_integrator_c() : delta_distance(0.05){};
+
+    int get_plotter_state(const state_t& s, float* ps)
+    {
+      for(int i=0; i<3; i++)
+        ps[i] = 0;
+      if(N < 4){
+        for(int i=0; i<N-1; i++)
+          ps[i] = s[i];
+      }
+      else{
+        cout<<"plotting single integrator for N > 3"<<endl;
+      }
+      return 0;
+    }
 
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, single_integrator_opt_data_t& opt_data)

@@ -13,6 +13,12 @@
 #include <unordered_map>
 
 #include "system.h"
+
+#include <lcm/lcm.h>
+#include <bot_core/bot_core.h>
+#include <bot_lcmgl_client/lcmgl.h>
+#include <bot_vis/gl_util.h>
+
 using namespace std;
 
 template<class system_tt> class vertex_c;
@@ -115,7 +121,10 @@ class rrts_c
     typedef typename system_tt::control control;
     typedef typename system_tt::opt_data_t opt_data_t;
     typedef typename system_tt::trajectory trajectory_t;
+    
     typedef typename system_tt::cost_t cost_t;  
+    typedef typename system_tt::region_t region_t;
+
     const static size_t num_dim = system_tt::N;
 
     typedef vertex_c<system_tt> vertex;
@@ -139,8 +148,15 @@ class rrts_c
     kdtree_t* kdtree;
 
     static int debug_counter;
+    bot_lcmgl_t* lcmgl;
+    float points_color[4];
+    float points_size;
+    float lines_color[4];
+    float lines_width;
+    float best_lines_color[4];
+    float best_lines_width;
 
-    rrts_c()
+    rrts_c(bot_lcmgl_t* lcmgl_in)
     {
       gamma = 2.5;
       goal_sample_freq = 0.1;
@@ -151,6 +167,27 @@ class rrts_c
 
       kdtree = NULL;
       num_vertices = 0;
+
+      lcmgl = lcmgl_in;
+
+      points_color[0] = 1;
+      points_color[1] = 1;
+      points_color[2] = 0;
+      points_color[3] = 0.9;
+      points_size = 4;
+
+      lines_color[0] = 1;
+      lines_color[1] = 1;
+      lines_color[2] = 1;
+      lines_color[3] = 0.5;
+      lines_width = 1.5;
+
+      best_lines_color[0] = 1;
+      best_lines_color[1] = 0;
+      best_lines_color[2] = 0;
+      best_lines_color[3] = 1;
+      best_lines_width = 4.0;
+
     }
     ~rrts_c()
     {
@@ -726,6 +763,95 @@ class rrts_c
       }
       else
         return 3;
+    }
+    
+    virtual void plot_tree()
+    {
+      bool check_obstacles = false;
+      if(num_vertices == 0)
+        return;
+      for(auto& v : list_vertices)
+      {
+        float s1[3] = {0};
+        system.get_plotter_state(v->state, s1);
+        bot_lcmgl_color4f(lcmgl, points_color[0], points_color[1], points_color[2], points_color[3]);
+        bot_lcmgl_point_size(lcmgl, points_size);
+        bot_lcmgl_begin(lcmgl, GL_POINTS);
+        bot_lcmgl_vertex3f(lcmgl, s1[0], s1[1], s1[2]);
+        bot_lcmgl_end(lcmgl);
+        
+        if(v->parent){
+          trajectory_t traj_from_parent;
+          if(system.extend_to(v->parent->state, v->state, check_obstacles,
+              traj_from_parent, v->edge_from_parent->opt_data)){
+            cout<<"extend_to returns 1 while plotting"<<endl;
+            return;
+          }
+          
+          bot_lcmgl_color4f(lcmgl, lines_color[0], lines_color[1], lines_color[2], lines_color[3]);
+          bot_lcmgl_line_width(lcmgl, lines_width);
+          bot_lcmgl_begin(lcmgl, GL_LINES);
+          for(auto pts = traj_from_parent.states.begin(); pts != traj_from_parent.states.end(); pts++)
+          {
+            float s2[3] = {0};
+            system.get_plotter_state(*pts, s2);
+            bot_lcmgl_vertex3f(lcmgl, s2[0], s2[1], s2[2]);
+            
+            auto npts = pts;
+            npts++;
+            if(npts != traj_from_parent.states.end()){
+              system.get_plotter_state(*npts, s2);
+              bot_lcmgl_vertex3f(lcmgl, s2[0], s2[1], s2[2]);
+            }
+          }
+          bot_lcmgl_end(lcmgl);
+        }
+      }
+    }
+
+    virtual void plot_best_trajectory()
+    {
+      trajectory_t best_trajectory;
+      if(get_best_trajectory(best_trajectory))
+        return;
+      
+      bot_lcmgl_color4f(lcmgl, best_lines_color[0], best_lines_color[1], best_lines_color[2], best_lines_color[3]);
+      bot_lcmgl_line_width(lcmgl, best_lines_width);
+      bot_lcmgl_begin(lcmgl, GL_LINES);
+      for(auto pts = best_trajectory.states.begin(); pts != best_trajectory.states.end(); pts++)
+      {
+        float s2[3] = {0};
+        system.get_plotter_state(*pts, s2);
+        bot_lcmgl_vertex3f(lcmgl, s2[0], s2[1], s2[2]);
+
+        auto npts = pts;
+        npts++;
+        if(npts != best_trajectory.states.end()){
+          system.get_plotter_state(*npts, s2);
+          bot_lcmgl_vertex3f(lcmgl, s2[0], s2[1], s2[2]);
+        }
+      }
+      bot_lcmgl_end(lcmgl);
+    }
+
+    void plot_region(region_t* r, float* c, float* s)
+    {
+      r->get_plotter_state(c, s);
+      bot_lcmgl_color4f(lcmgl, r->color[0], r->color[1], r->color[2], r->color[3]);
+      double cd[3] = {0};
+      for(int i=0; i<3; i++)
+        cd[i] = c[i];
+      bot_lcmgl_box(lcmgl, cd, s);
+    }
+
+    virtual void plot_environment()
+    {
+      bot_lcmgl_enable(lcmgl, GL_BLEND);
+      float c[3] = {0};
+      float s[3] = {0};
+
+      plot_region(&system.operating_region, c, s);
+      plot_region(&system.goal_region, c, s);
     }
 };
 #endif

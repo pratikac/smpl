@@ -180,6 +180,8 @@ class dynamical_system_c
     
     virtual int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, opt_data_t& opt_data)=0;
     virtual float evaluate_extend_cost(const state_t& si, const state_t& sf, opt_data_t& opt_data)=0;
+    
+    virtual int get_plotter_state(const state_t& s, float* ps)=0;
 };
 
 #endif

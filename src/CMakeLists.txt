@@ -8,16 +8,19 @@ add_library(${POD_NAME} SHARED ${all_sources})
 add_executable(test_main test_main.cpp kdtree.c)
 
 # c++11 experimental flags
-set(CMAKE_CXX_FLAGS "-std=c++0x -o3")
+add_definitions(-std=c++0x)
 
 # uncomment these lines to link against another library via pkg-config
 #set(REQUIRED_PACKAGES pkg_a pkg_b)
 #pods_use_pkg_config_packages(${POD_NAME} ${REQUIRED_PACKAGES})
 
+set(REQUIRED_PACKAGES bot2-core bot2-lcmgl-client bot2-vis bot2-lcmgl-renderer)
+pods_use_pkg_config_packages(${POD_NAME} ${REQUIRED_PACKAGES})
+pods_use_pkg_config_packages(test_main ${REQUIRED_PACKAGES})
+
 # uncomment these lines to link against another library
 #set(REQUIRED_LIBS lib_a)
 #target_link_libraries (${POD_NAME} ${REQUIRED_LIBS})
-
 
 # install all headers to include/${POD_NAME}
 # make an aggregate header

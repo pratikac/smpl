@@ -34,6 +34,14 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       //turning_radii[2] = 8;
     };
 
+    int get_plotter_state(const state_t& s, float* ps)
+    {
+      ps[0] = s[0];
+      ps[1] = s[1];
+      ps[2] = 0;
+      return 0;
+    }
+
     int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, dubins_optimization_data_t& opt_data)
     {
       bool return_trajectory = true;

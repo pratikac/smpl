@@ -18,11 +18,17 @@ class region_c
   public:
     float s[N];
     float c[N];
+    float color[4];
 
     region_c()
     {
       for(size_t i=0; i<N; i++)
         s[i] = c[i] = 0;
+      
+      color[0] = 1;
+      color[1] = 0;
+      color[2] = 0;
+      color[3] = 0.5;
     }
     
     region_c(const float* cin, const float* sin)
@@ -42,6 +48,21 @@ class region_c
           return false;
       }
       return true;
+    }
+
+    virtual int get_plotter_state(float* cp, float* sp)
+    {
+      if(N < 4){
+        memcpy(cp, c, 3*sizeof(float));
+        memcpy(sp, s, 3*sizeof(float));
+      }
+      else{
+        memset(cp, 0, 3*sizeof(float));
+        memset(sp, 0, 3*sizeof(float));
+        cout<<"asked to draw region with dim > 3"<<endl;
+        return 1;
+      }
+      return 0;
     }
 };
 
@@ -143,6 +164,11 @@ class system_c
         key[i] = (s.x[i] - operating_region.c[i])/operating_region.s[i] + 0.5;
       //cout<<"key: "<< key[0]<<" "<<key[1]<<" "<<key[2]<<endl;
       return 0;
+    }
+    
+    virtual int get_plotter_state(const state& s, float* ps)
+    {
+      return dynamical_system.get_plotter_state(s, ps);
     }
 
     virtual bool is_in_collision(const state& s)
