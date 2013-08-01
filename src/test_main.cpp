@@ -9,8 +9,8 @@ using namespace std;
 
 int test_single_integrator()
 {
-  typedef system_c<single_integrator_c<3>, map_c<3>, cost_c<1> > system_t;
-  //typedef system_c<dubins_c, map_c<3>, cost_c<1> > system_t;
+  typedef system_c<single_integrator_c<3>, map_c<3>, region_c<3>, cost_c<1> > system_t;
+  //typedef system_c<dubins_c, map_c<3>, region_c<3>, cost_c<1> > system_t;
   
   typedef system_t::state state;
   typedef typename system_t::control control;
@@ -22,7 +22,7 @@ int test_single_integrator()
   bot_lcmgl_line_width(lcmgl, 2.0);
   bot_lcmgl_switch_buffer(lcmgl);
   
-  rrts_c<system_t> rrts(lcmgl);
+  rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
 
   float zero[3] = {0};
   float size[3] = {100,100,2*M_PI};
@@ -75,7 +75,7 @@ int test_single_integrator()
 
 int test_double_integrator()
 {
-  typedef system_c<double_integrator_c, map_c<4>, cost_c<1> > system_t;
+  typedef system_c<double_integrator_c, map_c<4>, region_c<4>, cost_c<1> > system_t;
   
   typedef system_t::state state;
   typedef typename system_t::control control;
@@ -86,7 +86,7 @@ int test_double_integrator()
   bot_lcmgl_t *lcmgl  = bot_lcmgl_init(lcm, "plotter");
   bot_lcmgl_switch_buffer(lcmgl);
   
-  rrts_c<system_t> rrts(lcmgl);
+  rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
 
   float zero[4] = {0};
   float size[4] = {100};

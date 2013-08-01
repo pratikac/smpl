@@ -134,7 +134,7 @@ class cost_c
 };
 
 
-template<class dynamical_system_tt, class map_tt, class cost_tt>
+template<class dynamical_system_tt, class map_tt, class region_tt, class cost_tt>
 class system_c
 {
   public:
@@ -147,13 +147,13 @@ class system_c
     typedef typename dynamical_system_t::opt_data_t opt_data_t;
     typedef typename dynamical_system_t::trajectory_t trajectory;
     const static size_t N = dynamical_system_t::state_t::N;
-    typedef region_c<N> region_t;
+    typedef region_tt region_t;
   
     map_t obstacle_map;
     dynamical_system_t dynamical_system;
 
-    region_c<N> operating_region;
-    region_c<N> goal_region;
+    region_t operating_region;
+    region_t goal_region;
 
     system_c(){};
     ~system_c(){}

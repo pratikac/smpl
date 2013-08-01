@@ -32,6 +32,7 @@ class vertex_c
     typedef vertex_c<system_tt> vertex;
     typedef edge_c<system_tt> edge;
 
+    typedef system_tt  system_t;
     typedef typename system_tt::state state_t;
     typedef typename system_tt::control control_t;
     typedef typename system_tt::opt_data_t opt_data_t;
@@ -66,6 +67,7 @@ class vertex_c
       state = si;
       mark = 0;
     }
+    
     string tostring() const
     {
       return state->tostring();
@@ -87,6 +89,7 @@ class edge_c
   public:
     typedef edge_c<system_tt> edge;
 
+    typedef system_tt  system_t;
     typedef typename system_tt::state state;
     typedef typename system_tt::control control;
     typedef typename system_tt::opt_data_t opt_data_t;
@@ -114,23 +117,23 @@ class edge_c
     }
 };
 
-template<class system_tt>
+template<class vertex_tt, class edge_tt>
 class rrts_c
 {
   public:
-    typedef typename system_tt::state state;
-    typedef typename system_tt::control control;
-    typedef typename system_tt::opt_data_t opt_data_t;
-    typedef typename system_tt::trajectory trajectory_t;
+    typedef typename vertex_tt::system_t system_t;
+    typedef typename system_t::state state;
+    typedef typename system_t::control control;
+    typedef typename system_t::opt_data_t opt_data_t;
+    typedef typename system_t::trajectory trajectory_t;
     
-    typedef typename system_tt::cost_t cost_t;  
-    typedef typename system_tt::region_t region_t;
+    typedef typename system_t::cost_t cost_t;  
+    typedef typename system_t::region_t region_t;
 
-    const static size_t num_dim = system_tt::N;
+    const static size_t num_dim = system_t::N;
 
-    typedef vertex_c<system_tt> vertex;
-    typedef edge_c<system_tt> edge;
-    typedef system_tt system_t;
+    typedef vertex_tt vertex;
+    typedef edge_tt edge;
 
     typedef struct kdtree kdtree_t;
     typedef struct kdres kdres_t;
@@ -147,6 +150,7 @@ class rrts_c
     cost_t lower_bound_cost;
     vertex* lower_bound_vertex;
     kdtree_t* kdtree;
+    vertex* last_added_vertex;
 
     static int debug_counter;
     bot_lcmgl_t* lcmgl;
@@ -157,7 +161,11 @@ class rrts_c
     float best_lines_color[4];
     float best_lines_width;
 
-    rrts_c(bot_lcmgl_t* lcmgl_in)
+    rrts_c(){
+      basic_initialization();
+    }
+    
+    void basic_initialization()
     {
       gamma = 2.5;
       goal_sample_freq = 0.1;
@@ -165,11 +173,10 @@ class rrts_c
 
       root = NULL;
       lower_bound_vertex = NULL;
+      last_added_vertex = NULL;
 
       kdtree = NULL;
       num_vertices = 0;
-
-      lcmgl = lcmgl_in;
 
       points_color[0] = 1;
       points_color[1] = 1;
@@ -190,6 +197,12 @@ class rrts_c
       best_lines_width = 4.0;
 
     }
+    
+    rrts_c(bot_lcmgl_t* lcmgl_in){
+      lcmgl = lcmgl_in;
+      basic_initialization();
+    }
+    
     ~rrts_c()
     {
       if(kdtree)
@@ -230,12 +243,15 @@ class rrts_c
 
       set_root(rs);
       root->state.print(cout,"set root to:", "\n");
+      last_added_vertex == root;
 
       return 0;
     }
 
     int iteration()
     {
+      last_added_vertex = NULL;
+
       // 1. sample
       state sr;
       int ret = 0;
@@ -266,7 +282,8 @@ class rrts_c
       // 5. rewire
       if(near_vertices.size())
         rewire_vertices(*new_vertex, near_vertices);
-
+      
+      last_added_vertex = new_vertex;
       return 0;
     }
 
@@ -296,7 +313,7 @@ class rrts_c
       vertex* vc = lower_bound_vertex;
       while(vc)
       {
-        vertex* vparent = vc->parent;
+        vertex* vparent = static_cast<vertex*>(vc->parent);
         if(vparent)
         {
           trajectory_t traj_from_parent;
@@ -459,7 +476,7 @@ class rrts_c
     {
       for(auto& pc : v.children)
       {
-        vertex& child = *pc;
+        vertex& child = *(static_cast<vertex*>(pc));
         child.cost_from_root = v.cost_from_root + child.cost_from_parent;
         update_best_vertex(child); 
         update_branch_cost(child, depth+1);
