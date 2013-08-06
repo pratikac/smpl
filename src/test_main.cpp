@@ -33,6 +33,7 @@ int test_single_integrator()
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
   
+
   state origin(zero);
   rrts.initialize(origin);
 
@@ -88,9 +89,6 @@ int test_double_integrator()
   
   rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
 
-  rrts.system.test_extend_to();
-  return 0;
-
   float zero[4] = {0};
   float size[4] = {25, 25, 10, 10};
   rrts.system.operating_region = region(zero, size);
@@ -100,6 +98,9 @@ int test_double_integrator()
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
   
+  //rrts.system.test_extend_to();
+  //return 0;
+
   state origin(zero);
   rrts.initialize(origin, lcmgl);
 
