@@ -3,6 +3,7 @@
 
 #include "dynamical_system.h"
 #include "double_integrator_mathematica.h"
+#include <cassert>
 
 class double_integrator_optimization_data_c : public optimization_data_c
 {
@@ -90,14 +91,14 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       }
       else
       {
-        g = -g;
+        float g1 = -g;
         if(t1one){
-          f = mt1l1(g) + mt2l(g) -T;
-          df = mdt1l1(g) + mdt2l(g);
+          f = mt1l1(g1) + mt2l(g1) -T;
+          df = mdt1l1(g1) + mdt2l(g1);
         }
         else{
-          f = mt1l2(g) + mt2l(g) -T;
-          df = mdt1l2(g) + mdt2l(g);
+          f = mt1l2(g1) + mt2l(g1) -T;
+          df = mdt1l2(g1) + mdt2l(g1);
         }
       }
     }
@@ -123,8 +124,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         else if(mt1l2(1) > 0)
           t1one = false;
       }
-      
-      float g = 1.0;
+     
+#if 0
+      float g = 0.8;
       float gp = g;
       bool is_converged = false;
       while(!is_converged)
@@ -132,12 +134,35 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         float f, df;
         get_f_df(x10, dx10, g, um, T, left, t1one, f, df);
         g = g - f/df;
-        is_converged = fabs(g - gp) < 0.1;
+        is_converged = fabs(g - gp) < 0.01;
         gp = g;
 
         cout<<"g: "<< g << endl;
         getchar();
       }
+#else
+      float g=0.5, gm=1e-10, gp=1;
+      float f, fm, fp, df;
+      get_f_df(x10, dx10, gm, um, T, left, t1one, fm, df);
+      get_f_df(x10, dx10, gp, um, T, left, t1one, fp, df);
+      assert(fm*fp < 0);
+
+      bool is_converged = false;
+      while(!is_converged)
+      {
+        g = (gm+gp)/2;
+        get_f_df(x10, dx10, g, um, T, left, t1one, f, df);
+        
+        if(f*fm < 0)
+          gp = g;
+        else if(f*fp < 0)
+          gm = g;
+
+        is_converged = (gp-gm) < 0.05;
+        cout<<"g: "<< g << endl;
+        getchar();
+      }
+#endif
       return g;
     }
 
@@ -152,11 +177,11 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       if(is_right(x10, dx10, 1))
       {
         u1 = -um;
-        if(mt1r1(1) > 0){
-          t1 = mt1r1(1);
+        if(mt1l1(-1) > 0){
+          t1 = mt1l1(-1);
         }
-        else if(mt1r2(1) > 0){
-          t1 = mt1r2(1);
+        else if(mt1l2(-1) > 0){
+          t1 = mt1l2(-1);
         }
         else
         {
@@ -164,7 +189,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
           cout<<"both t1 < 0"<<endl;
           getchar();
         }
-        t2 = mt2r(1);
+        t2 = mt2l(-1);
         return t1+t2;
       }
       else if(is_left(x10, dx10, 1))
@@ -229,7 +254,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
 
       opt_data.is_initialized = true;
       
-      //cout<<"T: "<< T << endl;
+      cout<<"T: "<< T << endl;
       return T;
     }
 
@@ -238,7 +263,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       trajectory_t traj;
       float zero[4] ={0};
       state_t origin(zero);
-      float goal[4] = {-10, 5, 2, 1};
+      float goal[4] = {10, 5, 2, 1};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 
