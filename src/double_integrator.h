@@ -58,16 +58,53 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float u11 = opt_data.u11, u21 = opt_data.u21;
       
       float um = 1, g = 1;
+      float u1, u2;
       // dim 2 needs to slow down
       if( fabs(T-T1) < fabs(T-T2))
       {
         g = get_gain(t2, T, um, u21);
+        u1 = u11;
+        u2 = g*u21;
+        get_time(t2, u2, t21, t22, u21); 
+        if(g < 0)
+          return -1;
       }
       // dim 1 needs to slow down
       else
       {
         g = get_gain(t1, T, um, u11);
+        u1 = g*u11;
+        u2 = u21;
+        get_time(t1, u1, t11, t12, u11); 
+        if(g < 0)
+          return -1;
       }
+      
+      float t = 0, dt = 0.05;
+      state_t sc = si;
+      control_t cc;
+      while(t < T)
+      {
+        if(t < t11)
+          cc.x[0] = u1;
+        else
+          cc.x[0] = -u1;
+        if(t < t21)
+          cc.x[1] = u2;
+        else
+          cc.x[1] = -u2;
+
+        sc.x[2] += cc[0]*dt;
+        sc.x[3] += cc[1]*dt;
+        sc.x[0] += sc[2]*dt;
+        sc.x[1] += sc[3]*dt;
+
+        traj.states.push_back(sc);
+        traj.controls.push_back(cc);
+        t += dt;
+      }
+
+      //cout<<"g: "<< g << endl;
       return 0;
     }
     
@@ -76,93 +113,66 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
      * calculates g using newton-raphson
      * u1 is used to check the direction left /right
      */
-    void get_f_df(float x10, float dx10, float g, float um, float T, bool left, bool t1one, float& f, float& df)
+    void get_f_df(float x10, float dx10, float g, float um, float T, float& f, float& df)
     {
-      if(left)
+      bool left, t1one;
+      if(is_left(x10, dx10, g))
       {
-        if(t1one){
+        if(mt1l1(g) > 0)
+        {
           f = mt1l1(g) + mt2l(g) -T;
           df = mdt1l1(g) + mdt2l(g);
-        }
-        else{
+        }  
+        else if(mt1l2(g) > 0){
           f = mt1l2(g) + mt2l(g) - T;
           df = mdt1l2(g) + mdt2l(g);
         }
+        else
+          f = -FLT_MAX;
       }
-      else
+      else if(is_right(x10, dx10, g))
       {
-        float g1 = -g;
-        if(t1one){
+        float g1= -g;
+        if(mt1l1(g1) > 0){
           f = mt1l1(g1) + mt2l(g1) -T;
           df = mdt1l1(g1) + mdt2l(g1);
         }
-        else{
+        else if(mt1l2(g1) > 0){
           f = mt1l2(g1) + mt2l(g1) -T;
           df = mdt1l2(g1) + mdt2l(g1);
         }
-      }
+        else
+          f = -FLT_MAX;
+      }  
     }
 
     float get_gain(float x0[2], float T, float um, float u1)
     {
       float x10 = x0[0];
       float dx10 = x0[1];
-      bool left, t1one;
-      if(u1 > 0)
-      {
-        left = true;
-        if(mt1l1(1) > 0)
-          t1one = true;
-        else if(mt1l2(1) > 0)
-          t1one = false;
-      }
-      else
-      {
-        left = false;
-        if(mt1l1(1) > 0)
-          t1one = true;
-        else if(mt1l2(1) > 0)
-          t1one = false;
-      }
-     
-#if 0
-      float g = 0.8;
-      float gp = g;
-      bool is_converged = false;
-      while(!is_converged)
-      {
-        float f, df;
-        get_f_df(x10, dx10, g, um, T, left, t1one, f, df);
-        g = g - f/df;
-        is_converged = fabs(g - gp) < 0.01;
-        gp = g;
-
-        cout<<"g: "<< g << endl;
-        getchar();
-      }
-#else
+      
       float g=0.5, gm=1e-10, gp=1;
       float f, fm, fp, df;
-      get_f_df(x10, dx10, gm, um, T, left, t1one, fm, df);
-      get_f_df(x10, dx10, gp, um, T, left, t1one, fp, df);
-      assert(fm*fp < 0);
+      get_f_df(x10, dx10, gm, um, T, fm, df);
+      get_f_df(x10, dx10, gp, um, T, fp, df);
+      if( (fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
+        return -1;
 
       bool is_converged = false;
       while(!is_converged)
       {
         g = (gm+gp)/2;
-        get_f_df(x10, dx10, g, um, T, left, t1one, f, df);
+        get_f_df(x10, dx10, g, um, T, f, df);
+        if(f < -FLT_MAX/2)
+          return -1;
         
         if(f*fm < 0)
           gp = g;
         else if(f*fp < 0)
           gm = g;
 
-        is_converged = (gp-gm) < 0.05;
-        cout<<"g: "<< g << endl;
-        getchar();
+        is_converged = (gp-gm) < 0.01;
       }
-#endif
       return g;
     }
 
