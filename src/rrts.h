@@ -303,14 +303,11 @@ class rrts_c
     cost_t get_best_cost()    {return lower_bound_cost;};
     vertex& get_best_vertex() {return *lower_bound_vertex;}
 
-    int get_best_trajectory(trajectory_t& best_traj)
+    int get_trajectory_root(vertex& v, trajectory_t& root_traj)
     {
-      if(!lower_bound_vertex)
-        return 1;
-
-      best_traj.clear();
+      root_traj.clear();
       bool check_obstacles = false;
-      vertex* vc = lower_bound_vertex;
+      vertex* vc = static_cast<vertex*>(&v);
       while(vc)
       {
         vertex* vparent = static_cast<vertex*>(vc->parent);
@@ -320,11 +317,20 @@ class rrts_c
           system.extend_to(vparent->state, vc->state, check_obstacles,
               traj_from_parent, vc->edge_from_parent->opt_data);
           traj_from_parent.reverse();
-          best_traj.append(traj_from_parent);
+          root_traj.append(traj_from_parent);
         }
         vc = vparent;
       }
-      best_traj.reverse();
+      root_traj.reverse();
+      return 0;
+    }
+
+    int get_best_trajectory(trajectory_t& best_traj)
+    {
+      if(!lower_bound_vertex)
+        return 1;
+        
+      get_trajectory_root(*lower_bound_vertex, best_traj);
       return 0;
     }
 

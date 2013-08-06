@@ -303,22 +303,7 @@ class system_c
 
     void test_extend_to()
     {
-      trajectory traj;
-      float zero[3] ={0};
-      state origin(zero);
-      for(int i=0; i<10; i++)
-      {
-        state sr;
-        sample_in_goal(sr);
-        sr.print(cout, "sampled:","\n");
-        
-        opt_data_t opt_data;
-        extend_to(origin, sr, true, traj, opt_data);
-        cout<<"cost: "<< traj.total_variation<<endl;
-        traj.print();
-        getchar();
-      }
-      traj.clear();
+      dynamical_system.test_extend_to();       
     }
 };
 

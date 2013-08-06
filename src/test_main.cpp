@@ -88,11 +88,14 @@ int test_double_integrator()
   
   rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
 
+  rrts.system.test_extend_to();
+  return 0;
+
   float zero[4] = {0};
-  float size[4] = {100};
+  float size[4] = {25, 25, 10, 10};
   rrts.system.operating_region = region(zero, size);
 
-  float gc[4] = {10,0,4,0};
+  float gc[4] = {10,5,2,1};
   float gs[4] = {0.1,0.1,0.1,0.1};
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
@@ -103,21 +106,24 @@ int test_double_integrator()
   tt clock;
   clock.tic();
   int max_iterations = 1e3, diter=max_iterations/10;
-  trajectory traj;
   for(int i=0; i<max_iterations; i++)
   {
     rrts.iteration();
     if(i%diter == 0)
       cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
-    //cout<<"check_tree: "<< rrts.check_tree() << endl;
+    
+    rrts.plot_tree();
+    rrts.plot_best_trajectory();
+    bot_lcmgl_switch_buffer(lcmgl);
+    getchar();
   }
   cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
-  rrts.plot_environment();
-  rrts.plot_tree();
-  rrts.plot_best_trajectory();
-  bot_lcmgl_switch_buffer(lcmgl);
   cout<<rrts.get_best_cost().val[0]<<endl;
   
+  trajectory best_traj;
+  rrts.get_best_trajectory(best_traj);
+  best_traj.print();
+
   return 0;
 }
 
@@ -125,7 +131,7 @@ int test_double_integrator()
 int main()
 {
   
-  test_single_integrator();
-  //test_double_integrator();
+  //test_single_integrator();
+  test_double_integrator();
   return 0;
 };

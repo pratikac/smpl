@@ -68,7 +68,22 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
     {
       return si.dist(sf);
     }
+    
+    void test_extend_to()
+    {
+      trajectory_t traj;
+      float zero[N] ={0};
+      state_t origin(zero);
+      float goal[N] = {10};
+      state_t sr(goal);
+      sr.print(cout, "sampled:","\n");
 
+      optimization_data_c opt_data;
+      extend_to(origin, sr, traj, opt_data);
+      cout<<"cost: "<< traj.total_variation<<endl;
+      traj.print();
+      traj.clear();
+    }
 };
 
 #endif

@@ -6,9 +6,8 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include "utils.h"
 using namespace std;
-
-#define SQ(x)   ((x)*(x))
 
 template<size_t N_t>
 class state_c
@@ -182,6 +181,8 @@ class dynamical_system_c
     virtual float evaluate_extend_cost(const state_t& si, const state_t& sf, opt_data_t& opt_data)=0;
     
     virtual int get_plotter_state(const state_t& s, float* ps)=0;
+    
+    virtual void test_extend_to() = 0;
 };
 
 #endif

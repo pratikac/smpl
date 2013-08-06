@@ -332,6 +332,22 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
 
       return min_time;
     }
+    
+    void test_extend_to()
+    {
+      trajectory_t traj;
+      float zero[3] ={0};
+      state_t origin(zero);
+      float goal[3] = {10, 5, 45/180*M_PI};
+      state_t sr(goal);
+      sr.print(cout, "sampled:","\n");
+
+      dubins_optimization_data_c opt_data;
+      extend_to(origin, sr, traj, opt_data);
+      cout<<"cost: "<< traj.total_variation<<endl;
+      traj.print();
+      traj.clear();
+    }
 };
 
 #endif

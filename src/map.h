@@ -1,8 +1,6 @@
 #ifndef __map_h__
 #define __map_h__
 
-#define RANDF   (rand()/(RAND_MAX+1.0))
-
 template <size_t N> 
 class map_c
 {
