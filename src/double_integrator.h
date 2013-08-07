@@ -8,6 +8,8 @@ class double_integrator_optimization_data_c : public optimization_data_c
 {
   public:
     float T1, T2, T;
+    float t11, t21;
+    float u1, u2;
     bool is_initialized;
 
     double_integrator_optimization_data_c() : is_initialized(false) {}
@@ -23,7 +25,8 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef typename dynamical_system_t::trajectory_t trajectory_t;
     typedef double_integrator_optimization_data_c double_integrator_opt_data_t;
     
-    double_integrator_c() {}
+    float umm;
+    double_integrator_c() : umm(1) {}
     
     int get_plotter_state(const state_t& s, float* ps)
     {
@@ -36,10 +39,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, double_integrator_opt_data_t& opt_data)
     {
-      if(!opt_data.is_initialized)
-        if(evaluate_extend_cost(si, sf, opt_data) < 0)
-          return 1;
-      
+      if(evaluate_extend_cost(si, sf, opt_data) < 0)
+        return 1;
+
       traj.clear();
       traj.total_variation = opt_data.T;
       
@@ -52,48 +54,65 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       
       float T = opt_data.T, T1 = opt_data.T1, T2 = opt_data.T2;
       float t11, t12, t21, t22;
-
-      float um = 1, g = 1;
       float u1, u2;
-      
-      get_time(t1, um, t11, t12);
-      get_time(t2, um, t21, t22);
-      if(is_right(t1[0], t1[1], um))
-        u1 = -um;
-      else
-        u1 = um;
-      if(is_right(t2[0], t2[1], um))
-        u2 = -um;
-      else
-        u2 = um;
+      float um = umm;
 
-      // dim 2 needs to slow down
-      if( fabs(T-T1) < 1e-6)
+      if(!opt_data.is_initialized)
       {
-        g = get_gain(t2, T, um);
-        get_time(t2, g*um, t21, t22);
-          
-        if(is_right(t2[0], t2[1], g*um))
-          u2 = -g*um;
+        get_time(t1, um, t11, t12);
+        get_time(t2, um, t21, t22);
+        
+        if(is_right(t1[0], t1[1], um))
+          u1 = -um;
         else
-          u2 = g*um;
+          u1 = um;
+        if(is_right(t2[0], t2[1], um))
+          u2 = -um;
+        else
+          u2 = um;
 
-        if(g < 0)
-          return -1;
-      }
-      // dim 1 needs to slow down
+        float g = 1.0;
+        // dim 2 needs to slow down
+        if( fabs(T-T1) < 1e-6)
+        {
+          g = get_gain(t2, T, um);
+          get_time(t2, g*um, t21, t22);
+
+          if(is_right(t2[0], t2[1], g*um))
+            u2 = -g*um;
+          else
+            u2 = g*um;
+
+          if(g < 0)
+            return -1;
+        }
+        // dim 1 needs to slow down
+        else
+        {
+          g = get_gain(t1, T, um);
+          get_time(t1, g*um, t11, t12); 
+
+          if(is_right(t1[0], t1[1], g*um))
+            u1 = -g*um;
+          else
+            u1 = g*um;
+
+          if(g < 0)
+            return -1;
+        }
+        
+        opt_data.t11 = t11;
+        opt_data.t21 = t21;
+        opt_data.u1 = u1;
+        opt_data.u2 = u2;
+        opt_data.is_initialized = true;
+      } 
       else
       {
-        g = get_gain(t1, T, um);
-        get_time(t1, g*um, t11, t12); 
-        
-        if(is_right(t1[0], t1[1], g*um))
-          u1 = -g*um;
-        else
-          u1 = g*um;
-        
-        if(g < 0)
-          return -1;
+        t11 = opt_data.t11;
+        t21 = opt_data.t21;
+        u1 = opt_data.u1;
+        u2 = opt_data.u2;
       }
 #if 1 
       float t = 0, dt = 0.05;
@@ -143,7 +162,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float x10 = x0[0];
       float dx10 = x0[1];
       
-      float g=0.5, gm=-1e-6, gp=2;
+      float g=0.5, gm=-1e-6, gp=1.1;
       float f, fm, fp;
       fm = get_f(x10, dx10, gm, um, T);
       fp = get_f(x10, dx10, gp, um, T);
@@ -212,7 +231,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       if(opt_data.is_initialized)
         return opt_data.T;
 
-      float um=1;
+      float um=umm;
 
       float x10 = si[0] - sf[0];
       float dx10 = si[2]-sf[2];
@@ -227,13 +246,11 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float T2 = get_time(t2, um, t21, t22);
       float T = max(T1, T2);
       //cout<<"T1: "<< T1 << " T2: "<< T2 << " T: "<< T << endl;
-
+      
       opt_data.T1 = T1;
       opt_data.T2 = T2;
       opt_data.T = T;
 
-      opt_data.is_initialized = true;
-      
       //cout<<"T: "<< T << endl;
       return T;
     }

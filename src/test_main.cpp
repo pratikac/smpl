@@ -93,7 +93,7 @@ int test_double_integrator()
   float size[4] = {25, 25, 10, 10};
   rrts.system.operating_region = region(zero, size);
 
-  float gc[4] = {10,5,2,1};
+  float gc[4] = {10,5,0,0};
   float gs[4] = {0.1,0.1,0.1,0.1};
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
@@ -103,25 +103,21 @@ int test_double_integrator()
 
   tt clock;
   clock.tic();
-  int max_iterations = 1e3, diter=max_iterations/10;
+  int max_iterations = 1e2, diter=max_iterations/10;
   for(int i=0; i<max_iterations; i++)
   {
     rrts.iteration();
     if(i%diter == 0)
+    {
       cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
-    
-    rrts.plot_tree();
-    rrts.plot_best_trajectory();
-    bot_lcmgl_switch_buffer(lcmgl);
-    getchar();
+      rrts.plot_tree();
+      rrts.plot_best_trajectory();
+      bot_lcmgl_switch_buffer(lcmgl);
+    }
   }
   cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
   cout<<rrts.get_best_cost().val[0]<<endl;
   
-  trajectory best_traj;
-  rrts.get_best_trajectory(best_traj);
-  best_traj.print();
-
   return 0;
 }
 

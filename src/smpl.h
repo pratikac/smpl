@@ -9,7 +9,6 @@
 #include "dynamical_system.h"
 #include "dintdrift.h"
 #include "map.h"
-#include "double_integrator_mathematica.h"
 #include "system.h"
 #include "double_integrator.h"
 #include "utils.h"
