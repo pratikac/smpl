@@ -98,8 +98,8 @@ int test_double_integrator()
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
   
-  rrts.system.test_extend_to();
-  return 0;
+  //rrts.system.test_extend_to();
+  //return 0;
 
   state origin(zero);
   rrts.initialize(origin, lcmgl);

@@ -96,7 +96,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
           return -1;
       }
 #if 1 
-      float t = 0, dt = 0.005;
+      float t = 0, dt = 0.05;
       state_t sc;
       sc.x[0] = x10; sc.x[1] = x20;
       sc.x[2] = dx10; sc.x[3] = dx20;
@@ -143,11 +143,11 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float x10 = x0[0];
       float dx10 = x0[1];
       
-      float g=0.5, gm=1e-10, gp=1;
+      float g=0.5, gm=-1e-6, gp=2;
       float f, fm, fp;
       fm = get_f(x10, dx10, gm, um, T);
       fp = get_f(x10, dx10, gp, um, T);
-      if( (fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
+      if((fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
         return -1;
 
       bool is_converged = false;
@@ -175,23 +175,15 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     
     float get_t1(float x10, float dx10, float um)
     {
-      if(is_right(x10, dx10, um))
-      {
+      if(is_right(x10, dx10, um)){
         float t1 = 2*dx10*um;
         float d1 = sqrt(2)*sqrt(dx10*dx10*um*um + 2*pow(um,3)*x10);
-        float t1r1 = (t1 - d1)/2/um/um;
-        float t1r2 = (t1 + d1)/2/um/um;
-        assert(max(t1r1, t1r2) > 0);
-        return max(t1r1, t1r2);
+        return (t1+d1)/2/um/um;
       }
-      else
-      {
+      else{
         float t1 = -2*dx10*um;
         float d1 = sqrt(2)*sqrt(dx10*dx10*um*um - 2*pow(um,3)*x10);
-        float t1l1 = (t1 - d1)/2/um/um;
-        float t1l2 = (t1 + d1)/2/um/um;
-        assert(max(t1l1, t1l2) > 0);
-        return max(t1l1, t1l2);
+        return (t1+d1)/2/um/um;
       }
     }
 
@@ -200,7 +192,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       if(is_right(x10, dx10, um))
         return sqrt(um*um*(dx10*dx10 + 2*um*x10)/2)/um/um;
       else
-        return sqrt(-um*um*(-dx10*dx10 + 2*um*x10)/2)/um/um;
+        return sqrt(um*um*(dx10*dx10 - 2*um*x10)/2)/um/um;
     }
     
     float get_time(float x0[2], float um, float& t1, float& t2)
@@ -234,7 +226,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float T1 = get_time(t1, um, t11, t12);
       float T2 = get_time(t2, um, t21, t22);
       float T = max(T1, T2);
-      cout<<"T1: "<< T1 << " T2: "<< T2 << " T: "<< T << endl;
+      //cout<<"T1: "<< T1 << " T2: "<< T2 << " T: "<< T << endl;
 
       opt_data.T1 = T1;
       opt_data.T2 = T2;
@@ -256,7 +248,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       sr.print(cout, "sampled:","\n");
 
       double_integrator_optimization_data_c opt_data;
-      if(extend_to(sr, origin, traj, opt_data))
+      if(extend_to(origin, sr, traj, opt_data))
         cout<<"could not connect"<<endl;
       cout<<"cost: "<< traj.total_variation<<endl;
       traj.print();
