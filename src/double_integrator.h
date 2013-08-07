@@ -154,7 +154,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     {
       float t1, t2;
       float t[2] = {x10, dx10};
-      return get_time(t, g*um, t1, t2) - T;        
+      return get_time(t, fabs(g*um), t1, t2) - T;        
     }
 
     float get_gain(float x0[2], float T, float um)
@@ -162,7 +162,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float x10 = x0[0];
       float dx10 = x0[1];
       
-      float g=0.5, gm=-1e-6, gp=1.1;
+      float g=0.5, gm=1e-6, gp=1-1e-6;
       float f, fm, fp;
       fm = get_f(x10, dx10, gm, um, T);
       fp = get_f(x10, dx10, gp, um, T);
@@ -170,6 +170,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         return -1;
 
       bool is_converged = false;
+      int c = 0;
       while(!is_converged)
       {
         g = (gm+gp)/2.0;
@@ -177,11 +178,18 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         if(f < -FLT_MAX/2)
           return -1;
         
-        if(f*fm < 0)
+        if(f*fm < 0){
           gp = g;
-        else if(f*fp < 0)
+          fp = get_f(x10, dx10, gp, um, T);
+        }
+        else if(f*fp < 0){
           gm = g;
-
+          fm = get_f(x10, dx10, gm, um, T);
+        }
+        
+        c++;
+        if(c > 100)
+          cout<<"g: "<< g << " fm: "<< fm <<" fp: "<< fp <<" f: "<< f << endl;
         is_converged = (gp-gm) < 0.1;
       }
       return g;

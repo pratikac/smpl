@@ -76,6 +76,8 @@ int test_single_integrator()
 
 int test_double_integrator()
 {
+  srand(time(NULL));
+
   typedef system_c<double_integrator_c, map_c<4>, region_c<4>, cost_c<1> > system_t;
   
   typedef system_t::state state;
