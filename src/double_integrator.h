@@ -168,7 +168,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
 
     bool is_right(float x10, float dx10, float um)
     {
-      return (((x10 > dx10*dx10/2/um) || (dx10 > 0)) && ((x10 > -dx10*dx10/2/um) || (x10 > 0)));
+      return (((x10 > dx10*dx10/2/um) || (dx10 > 0)) && (x10 > -dx10*dx10/2/um));
     }
     
     float get_t1(float x10, float dx10, float um)
@@ -196,9 +196,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     float get_t2(float x10, float dx10, float um)
     {
       if(is_right(x10, dx10, um))
-        return (dx10*dx10 + 2*um*x10)/4/um/um;
+        return sqrt(um*um*(dx10*dx10 + 2*um*x10)/2)/um/um;
       else
-        return (dx10*dx10 - 2*um*x10)/4/um/um;
+        return sqrt(-um*um*(-dx10*dx10 + 2*um*x10)/2)/um/um;
     }
     
     float get_time(float x0[2], float um, float& t1, float& t2)
