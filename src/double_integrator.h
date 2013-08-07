@@ -133,7 +133,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
      */
     float get_f(float x10, float dx10, float g, float um, float T)
     {
-      return get_t1(x10, dx10, g*um) + get_t2(x10, dx10, g*um) - T;        
+      float t1, t2;
+      float t[2] = {x10, dx10};
+      return get_time(t, g*um, t1, t2) - T;        
     }
 
     float get_gain(float x0[2], float T, float um)
@@ -205,7 +207,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     {
       float x10 = x0[0];
       float dx10 = x0[1];
-      
+    
       t1 = get_t1(x10, dx10, um);
       t2 = get_t2(x10, dx10, um);
 
@@ -232,8 +234,8 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float T1 = get_time(t1, um, t11, t12);
       float T2 = get_time(t2, um, t21, t22);
       float T = max(T1, T2);
-      //cout<<"T1: "<< T1 << " T2: "<< T2 << " T: "<< T << endl;
-      
+      cout<<"T1: "<< T1 << " T2: "<< T2 << " T: "<< T << endl;
+
       opt_data.T1 = T1;
       opt_data.T2 = T2;
       opt_data.T = T;
@@ -249,12 +251,12 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       trajectory_t traj;
       float zero[4] = {0};
       state_t origin(zero);
-      float goal[4] = {10, 5, 2, 1};
+      float goal[4] = {2, 2, 3, 3};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 
       double_integrator_optimization_data_c opt_data;
-      if(extend_to(origin, sr, traj, opt_data))
+      if(extend_to(sr, origin, traj, opt_data))
         cout<<"could not connect"<<endl;
       cout<<"cost: "<< traj.total_variation<<endl;
       traj.print();
