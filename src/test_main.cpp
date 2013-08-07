@@ -98,9 +98,6 @@ int test_double_integrator()
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
   
-  //rrts.system.test_extend_to();
-  //return 0;
-
   state origin(zero);
   rrts.initialize(origin, lcmgl);
 
@@ -114,7 +111,7 @@ int test_double_integrator()
       cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
     
     rrts.plot_tree();
-    //rrts.plot_best_trajectory();
+    rrts.plot_best_trajectory();
     bot_lcmgl_switch_buffer(lcmgl);
     getchar();
   }
