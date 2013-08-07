@@ -2,15 +2,12 @@
 #define __double_integrator_h__
 
 #include "dynamical_system.h"
-#include "double_integrator_mathematica.h"
 #include <cassert>
 
 class double_integrator_optimization_data_c : public optimization_data_c
 {
   public:
-    float t11, t12, t21, t22;
     float T1, T2, T;
-    float u11, u21;
     bool is_initialized;
 
     double_integrator_optimization_data_c() : is_initialized(false) {}
@@ -47,41 +44,62 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       traj.total_variation = opt_data.T;
       
       float x10 = si[0] - sf[0];
-      float dx10 = si[2]-sf[2];
       float x20 = si[1] - sf[1];
+      float dx10 = si[2]- sf[2];
       float dx20 = si[3] - sf[3];
       float t1[2] = {x10, dx10};
       float t2[2] = {x20, dx20};
       
       float T = opt_data.T, T1 = opt_data.T1, T2 = opt_data.T2;
-      float t11 = opt_data.t11, t12 = opt_data.t12, t21 = opt_data.t21, t22 = opt_data.t22;
-      float u11 = opt_data.u11, u21 = opt_data.u21;
-      
+      float t11, t12, t21, t22;
+
       float um = 1, g = 1;
       float u1, u2;
+      
+      get_time(t1, um, t11, t12);
+      get_time(t2, um, t21, t22);
+      if(is_right(t1[0], t1[1], um))
+        u1 = -um;
+      else
+        u1 = um;
+      if(is_right(t2[0], t2[1], um))
+        u2 = -um;
+      else
+        u2 = um;
+
       // dim 2 needs to slow down
-      if( fabs(T-T1) < fabs(T-T2))
+      if( fabs(T-T1) < 1e-6)
       {
-        g = get_gain(t2, T, um, u21);
-        u1 = u11;
-        u2 = g*u21;
-        get_time(t2, u2, t21, t22, u21); 
+        g = get_gain(t2, T, um);
+        get_time(t2, g*um, t21, t22);
+          
+        if(is_right(t2[0], t2[1], g*um))
+          u2 = -g*um;
+        else
+          u2 = g*um;
+
         if(g < 0)
           return -1;
       }
       // dim 1 needs to slow down
       else
       {
-        g = get_gain(t1, T, um, u11);
-        u1 = g*u11;
-        u2 = u21;
-        get_time(t1, u1, t11, t12, u11); 
+        g = get_gain(t1, T, um);
+        get_time(t1, g*um, t11, t12); 
+        
+        if(is_right(t1[0], t1[1], g*um))
+          u1 = -g*um;
+        else
+          u1 = g*um;
+        
         if(g < 0)
           return -1;
       }
-      
-      float t = 0, dt = 0.05;
-      state_t sc = si;
+#if 1 
+      float t = 0, dt = 0.005;
+      state_t sc;
+      sc.x[0] = x10; sc.x[1] = x20;
+      sc.x[2] = dx10; sc.x[3] = dx20;
       control_t cc;
       while(t < T)
       {
@@ -99,70 +117,42 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         sc.x[0] += sc[2]*dt;
         sc.x[1] += sc[3]*dt;
 
-        traj.states.push_back(sc);
+        traj.states.push_back(sc+sf);
         traj.controls.push_back(cc);
         t += dt;
       }
-
-      //cout<<"g: "<< g << endl;
+#else
+      traj.states.push_back(si);
+      traj.states.push_back(sf);
+#endif
       return 0;
     }
     
     /*
      * use control g*um to reach origin from x0[2] in T time units
-     * calculates g using newton-raphson
-     * u1 is used to check the direction left /right
      */
-    void get_f_df(float x10, float dx10, float g, float um, float T, float& f, float& df)
+    float get_f(float x10, float dx10, float g, float um, float T)
     {
-      bool left, t1one;
-      if(is_left(x10, dx10, g))
-      {
-        if(mt1l1(g) > 0)
-        {
-          f = mt1l1(g) + mt2l(g) -T;
-          df = mdt1l1(g) + mdt2l(g);
-        }  
-        else if(mt1l2(g) > 0){
-          f = mt1l2(g) + mt2l(g) - T;
-          df = mdt1l2(g) + mdt2l(g);
-        }
-        else
-          f = -FLT_MAX;
-      }
-      else if(is_right(x10, dx10, g))
-      {
-        float g1= -g;
-        if(mt1l1(g1) > 0){
-          f = mt1l1(g1) + mt2l(g1) -T;
-          df = mdt1l1(g1) + mdt2l(g1);
-        }
-        else if(mt1l2(g1) > 0){
-          f = mt1l2(g1) + mt2l(g1) -T;
-          df = mdt1l2(g1) + mdt2l(g1);
-        }
-        else
-          f = -FLT_MAX;
-      }  
+      return get_t1(x10, dx10, g*um) + get_t2(x10, dx10, g*um) - T;        
     }
 
-    float get_gain(float x0[2], float T, float um, float u1)
+    float get_gain(float x0[2], float T, float um)
     {
       float x10 = x0[0];
       float dx10 = x0[1];
       
       float g=0.5, gm=1e-10, gp=1;
-      float f, fm, fp, df;
-      get_f_df(x10, dx10, gm, um, T, fm, df);
-      get_f_df(x10, dx10, gp, um, T, fp, df);
+      float f, fm, fp;
+      fm = get_f(x10, dx10, gm, um, T);
+      fp = get_f(x10, dx10, gp, um, T);
       if( (fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
         return -1;
 
       bool is_converged = false;
       while(!is_converged)
       {
-        g = (gm+gp)/2;
-        get_f_df(x10, dx10, g, um, T, f, df);
+        g = (gm+gp)/2.0;
+        f = get_f(x10, dx10, g, um, T);
         if(f < -FLT_MAX/2)
           return -1;
         
@@ -171,61 +161,55 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         else if(f*fp < 0)
           gm = g;
 
-        is_converged = (gp-gm) < 0.01;
+        is_converged = (gp-gm) < 0.1;
       }
       return g;
     }
 
-    /*
-     * t1 = time till first switch
-     * t2 = T - t1, i.e., time until reaches origin
-     */
-    float get_time(float x0[2], float um, float& t1, float& t2, float& u1)
+    bool is_right(float x10, float dx10, float um)
     {
-      float x10 = x0[0];
-      float dx10 = x0[1];
-      if(is_right(x10, dx10, 1))
+      return (((x10 > dx10*dx10/2/um) || (dx10 > 0)) && ((x10 > -dx10*dx10/2/um) || (x10 > 0)));
+    }
+    
+    float get_t1(float x10, float dx10, float um)
+    {
+      if(is_right(x10, dx10, um))
       {
-        u1 = -um;
-        if(mt1l1(-1) > 0){
-          t1 = mt1l1(-1);
-        }
-        else if(mt1l2(-1) > 0){
-          t1 = mt1l2(-1);
-        }
-        else
-        {
-
-          cout<<"both t1 < 0"<<endl;
-          getchar();
-        }
-        t2 = mt2l(-1);
-        return t1+t2;
-      }
-      else if(is_left(x10, dx10, 1))
-      {
-        u1 = um;
-        if(mt1l1(1) > 0){
-          t1 = mt1l1(1);
-        }
-        else if(mt1l2(1) > 0){
-          t1 = mt1l2(1);
-        }
-        else
-        {
-
-          cout<<"both t1 < 0"<<endl;
-          getchar();
-        }
-        t2 = mt2l(1);
-        return t1+t2;
+        float t1 = 2*dx10*um;
+        float d1 = sqrt(2)*sqrt(dx10*dx10*um*um + 2*pow(um,3)*x10);
+        float t1r1 = (t1 - d1)/2/um/um;
+        float t1r2 = (t1 + d1)/2/um/um;
+        assert(max(t1r1, t1r2) > 0);
+        return max(t1r1, t1r2);
       }
       else
       {
-        cout<<"could not find region in state-space"<<endl;
-        getchar();
+        float t1 = -2*dx10*um;
+        float d1 = sqrt(2)*sqrt(dx10*dx10*um*um - 2*pow(um,3)*x10);
+        float t1l1 = (t1 - d1)/2/um/um;
+        float t1l2 = (t1 + d1)/2/um/um;
+        assert(max(t1l1, t1l2) > 0);
+        return max(t1l1, t1l2);
       }
-      return -1;
+    }
+
+    float get_t2(float x10, float dx10, float um)
+    {
+      if(is_right(x10, dx10, um))
+        return (dx10*dx10 + 2*um*x10)/4/um/um;
+      else
+        return (dx10*dx10 - 2*um*x10)/4/um/um;
+    }
+    
+    float get_time(float x0[2], float um, float& t1, float& t2)
+    {
+      float x10 = x0[0];
+      float dx10 = x0[1];
+      
+      t1 = get_t1(x10, dx10, um);
+      t2 = get_t2(x10, dx10, um);
+
+      return t1+t2;
     }
     
     float evaluate_extend_cost(const state_t& si, const state_t& sf,
@@ -244,34 +228,26 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float t1[2] = {x10, dx10};
       float t2[2] = {x20, dx20};
       float t11, t12, t21, t22;
-      float u11, u21;
 
-      float T1 = get_time(t1, um, t11, t12, u11);
-      float T2 = get_time(t2, um, t21, t22, u21);
+      float T1 = get_time(t1, um, t11, t12);
+      float T2 = get_time(t2, um, t21, t22);
       float T = max(T1, T2);
-
-      opt_data.T = T;
+      //cout<<"T1: "<< T1 << " T2: "<< T2 << " T: "<< T << endl;
+      
       opt_data.T1 = T1;
       opt_data.T2 = T2;
-
-      opt_data.t11 = t11;
-      opt_data.t12 = t12;
-      opt_data.t21 = t21;
-      opt_data.t22 = t22;
-
-      opt_data.u11 = u11;
-      opt_data.u21 = u21;
+      opt_data.T = T;
 
       opt_data.is_initialized = true;
       
-      cout<<"T: "<< T << endl;
+      //cout<<"T: "<< T << endl;
       return T;
     }
 
     void test_extend_to()
     {
       trajectory_t traj;
-      float zero[4] ={0};
+      float zero[4] = {0};
       state_t origin(zero);
       float goal[4] = {10, 5, 2, 1};
       state_t sr(goal);
@@ -282,7 +258,6 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         cout<<"could not connect"<<endl;
       cout<<"cost: "<< traj.total_variation<<endl;
       traj.print();
-      traj.clear();
     }
 }; 
 

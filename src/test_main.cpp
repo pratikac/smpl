@@ -114,7 +114,7 @@ int test_double_integrator()
       cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
     
     rrts.plot_tree();
-    rrts.plot_best_trajectory();
+    //rrts.plot_best_trajectory();
     bot_lcmgl_switch_buffer(lcmgl);
     getchar();
   }
