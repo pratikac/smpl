@@ -116,6 +116,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       }
 #if 1 
       float t = 0, dt = 0.05;
+      traj.dt = dt;
       state_t sc;
       sc.x[0] = x10; sc.x[1] = x20;
       sc.x[2] = dx10; sc.x[3] = dx20;

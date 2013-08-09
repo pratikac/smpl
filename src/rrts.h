@@ -164,6 +164,27 @@ class rrts_c
     rrts_c(){
       basic_initialization();
     }
+   
+    void set_points_color(float* pc, float ps)
+    {
+      for(int i : range(0,4))
+        points_color[i] = pc[i];
+      points_size = ps;
+    }
+    
+    void set_lines_color(float* lc, float lw)
+    {
+      for(int i : range(0,4))
+        lines_color[i] = lc[i];
+      lines_width = lw;
+    }
+
+    void set_best_lines_color(float* blc, float blw)
+    {
+      for(int i : range(0,4))
+        best_lines_color[i] = blc[i];
+      best_lines_width = blw;
+    }
     
     void basic_initialization()
     {
@@ -177,25 +198,13 @@ class rrts_c
 
       kdtree = NULL;
       num_vertices = 0;
-
-      points_color[0] = 1;
-      points_color[1] = 1;
-      points_color[2] = 0;
-      points_color[3] = 0.9;
-      points_size = 4;
-
-      lines_color[0] = 1;
-      lines_color[1] = 1;
-      lines_color[2] = 1;
-      lines_color[3] = 0.5;
-      lines_width = 1.5;
-
-      best_lines_color[0] = 1;
-      best_lines_color[1] = 0;
-      best_lines_color[2] = 0;
-      best_lines_color[3] = 1;
-      best_lines_width = 4.0;
-
+  
+      float pc[4] = {1,1,0,0.9};
+      float lc[4] = {1,1,1,0.5};
+      float blc[4] = {1,0,0,0.8};
+      set_points_color(pc, 4);
+      set_lines_color(lc, 1.5);
+      set_best_lines_color(blc, 4);
     }
     
     rrts_c(bot_lcmgl_t* lcmgl_in){
@@ -243,7 +252,7 @@ class rrts_c
 
       set_root(rs);
       root->state.print(cout,"set root to:", "\n");
-      last_added_vertex == root;
+      last_added_vertex = root;
 
       return 0;
     }

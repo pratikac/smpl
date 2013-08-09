@@ -6,6 +6,7 @@
 #include <vector>
 #include <list>
 #include <algorithm>
+#include <cassert>
 #include "utils.h"
 using namespace std;
 
@@ -91,8 +92,9 @@ class trajectory_c
     vector<state_t> states;
     vector<control_t> controls;
     float total_variation;
-     
-    trajectory_c() : total_variation(0){}
+    float dt;
+
+    trajectory_c() : total_variation(0), dt(0){}
     
     // does not clear memory, explicitly
     // call trajectory.clear() to deallocate memory
@@ -100,6 +102,7 @@ class trajectory_c
     int clear()
     {
       total_variation = 0;
+      dt = 0;
       states.clear();
       controls.clear();
       return 0;
@@ -112,6 +115,9 @@ class trajectory_c
     }
     int append(trajectory_c& t2)
     {
+      if(dt > 1e-3)
+        assert( fabs(dt - t2.dt) < 1e-3);
+      dt = t2.dt;
       total_variation += t2.total_variation;
       states.insert(states.end(), t2.states.begin(), t2.states.end());
       controls.insert(controls.end(), t2.controls.begin(), t2.controls.end());

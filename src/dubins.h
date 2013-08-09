@@ -198,7 +198,8 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       {
         traj.clear();
         traj.total_variation = total_cost;
-        
+        traj.dt = delta_distance;
+
         // Generate states/inputs
         float del_d = delta_distance;
         float del_t = del_d/turning_radius;

@@ -48,6 +48,7 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
       traj.clear();
       float dist = evaluate_extend_cost(si, sf, opt_data);
       traj.total_variation = dist;
+      traj.dt = delta_distance;     // assume velocity of 1 m/s
       int num_points = ceil(dist/delta_distance);
 
       float step[N];
