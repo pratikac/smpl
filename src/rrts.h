@@ -854,10 +854,12 @@ class rrts_c
       plot_trajectory(best_trajectory, best_lines_color, best_lines_width); 
     }
 
-    void plot_region(region_t* r, float* c, float* s)
+    void plot_region(region_t& r)
     {
-      r->get_plotter_state(c, s);
-      bot_lcmgl_color4f(lcmgl, r->color[0], r->color[1], r->color[2], r->color[3]);
+      float c[3] = {0};
+      float s[3] = {0};
+      r.get_plotter_state(c, s);
+      bot_lcmgl_color4f(lcmgl, r.color[0], r.color[1], r.color[2], r.color[3]);
       double cd[3] = {0};
       for(int i=0; i<3; i++)
         cd[i] = c[i];
@@ -867,11 +869,9 @@ class rrts_c
     virtual void plot_environment()
     {
       bot_lcmgl_enable(lcmgl, GL_BLEND);
-      float c[3] = {0};
-      float s[3] = {0};
 
-      plot_region(&system.operating_region, c, s);
-      plot_region(&system.goal_region, c, s);
+      plot_region(system.operating_region);
+      plot_region(system.goal_region);
     }
 };
 #endif
