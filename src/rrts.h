@@ -257,20 +257,25 @@ class rrts_c
       return 0;
     }
 
-    int iteration()
+    int iteration(state* s_in = NULL)
     {
       last_added_vertex = NULL;
 
       // 1. sample
       state sr;
-      int ret = 0;
-      float p = RANDF;
-      if(p < goal_sample_freq)
-        ret = system.sample_in_goal(sr);
+      if(!s_in)
+      {
+        int ret = 0;
+        float p = RANDF;
+        if(p < goal_sample_freq)
+          ret = system.sample_in_goal(sr);
+        else
+          ret = system.sample_state(sr);
+        if(ret)
+          return 1;
+      }
       else
-        ret = system.sample_state(sr);
-      if(ret)
-        return 1;
+        sr = *s_in;
 
       // 2. compute nearest vertices
       vector<vertex*> near_vertices;
