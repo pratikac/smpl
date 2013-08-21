@@ -348,6 +348,24 @@ class brrts_c
       return 0;
     }
 
+    int get_nearest_vertex(const state& s, bvertex*& nearest_vertex)
+    {
+      int toret = 0;
+      float* key = new float[num_dim];
+      system.get_key(s, key);
+
+      float rn = gamma*pow(log(num_vertices + 1.0)/(num_vertices+1.0), 1.0/(float)num_dim);
+      kdres_t* kdres = kd_nearestf(kdtree, key);
+      if(!kd_res_size(kdres))
+        toret = 1;
+      else
+        nearest_vertex = (bvertex*) kd_res_item_data(kdres);
+      
+      delete[] key;
+      kd_res_free(kdres);
+      return toret;
+    }
+    
     int get_near_vertices(const state& s, vector<bvertex*>& near_vertices)
     {
       int toret = 0;

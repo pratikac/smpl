@@ -348,7 +348,7 @@ class rrts_c
       return 0;
     }
 
-    int get_nearest_vertex(const state& s, vertex* nearest_vertex)
+    int get_nearest_vertex(const state& s, vertex*& nearest_vertex)
     {
       int toret = 0;
       float* key = new float[num_dim];
@@ -356,7 +356,7 @@ class rrts_c
 
       float rn = gamma*pow(log(num_vertices + 1.0)/(num_vertices+1.0), 1.0/(float)num_dim);
       kdres_t* kdres = kd_nearestf(kdtree, key);
-      if(kd_res_end(kdres))
+      if(!kd_res_size(kdres))
         toret = 1;
       else
         nearest_vertex = (vertex*) kd_res_item_data(kdres);
