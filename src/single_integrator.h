@@ -54,7 +54,8 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
       float step[N];
       if(normalize_diff(si, sf, float(1.0/num_points), step)!=0)
         return 1;
-
+  
+      traj.states.reserve(num_points+1);
       traj.states.push_back(si);
       for(int i=1; i<num_points; i++)
       {

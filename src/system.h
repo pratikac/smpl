@@ -38,6 +38,10 @@ class region_c
         s[i] = sin[i];
         c[i] = cin[i];
       }
+      color[0] = 1;
+      color[1] = 0;
+      color[2] = 0;
+      color[3] = 0.5;
     }
     
     virtual bool is_inside(const state_c<N>& sin) const
@@ -49,6 +53,17 @@ class region_c
       }
       return true;
     }
+    
+    virtual bool is_inside(const float sin[N]) const
+    {
+      for(size_t i=0; i<N; i++)
+      {
+        if(fabs(sin[i] - c[i]) > s[i]/2.0)
+          return false;
+      }
+      return true;
+    }
+
 
     virtual int get_plotter_state(float* cp, float* sp)
     {
@@ -173,7 +188,10 @@ class system_c
 
     virtual bool is_in_collision(const state& s)
     {
-      return obstacle_map.is_in_collision(s.x);
+      if(operating_region.is_inside(s))
+        return obstacle_map.is_in_collision(s.x);
+      else
+        return true;
     }
     float get_goal_cost(const state& s)
     {

@@ -32,7 +32,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     {
       ps[0] = s[0];
       ps[1] = s[1];
-      ps[2] = 0;
+      ps[2] = 0; //sqrt(s[2]*s[2]+s[3]*s[3]);
       return 0;
     }
 
@@ -121,6 +121,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       sc.x[0] = x10; sc.x[1] = x20;
       sc.x[2] = dx10; sc.x[3] = dx20;
       control_t cc;
+      int num_steps = T/dt;
+      traj.states.reserve(num_steps);
+      traj.controls.reserve(num_steps);
       while(t < T)
       {
         if(t < t11)
