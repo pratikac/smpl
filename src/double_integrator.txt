@@ -1,0 +1,60 @@
+Double integrator steering function
+===================================
+
+state
+  [x, y, xdot, ydot]
+control
+  [u1, u2]
+  um = absolute value of maximum control that can be applied
+trajectory
+  arrays of state and controls with time discretization = 0.05
+opt_data
+  class that stores some values for every edge of rrt* that help
+  to recalculate the trajectory quickly instead of storing the whole
+  trajectory
+
+Dynamics: 
+  \ddot{x} = u1
+  \ddot{y} = u2
+
+si = (x1,y1, xdot1, ydot1)
+sf = (x2,y2, xdot2, ydot2)
+
+
+evaluate_extend_cost(state si, state sf, opt_data)
+  internally, we always work with si-sf here, so this problem translates to 
+  computes minimum time required to travel from state si-sf to the origin
+
+
+  T1 = time taken to travel from (x1,xdot1) to (x2, xdot2)
+  T2 = time taken to travel from (y1,ydot1) to (y2, ydot2)
+  copy the get_time function as it is
+    note: t1, t2 on line 237 are the time durations for which the optimal control
+          is at +um or -um to go from, say, (x1,xdot1) to (x2,xdot2)
+      
+          imagine the line x=-xdot or y=-ydot (similar to the switching curve I'd drawn the other
+          day), is_right and is_left check if a state (x, xdot) or (y, ydot) is on right or left
+          of this curve (line 204). If it is to the right, the optimal control for duration
+          t1 from start is -um and then switches to +um for an additional t2 time units (lines 65-72)
+
+  T = max(T1, T2)
+
+extend_to(si, sf, trajectory, opt_data)
+  first evaluates the cost, which populates opt_data if it is empty
+  
+  sets u1 = -um if (x1,x1dot) is to the right, and similarly for u2
+
+  now we know the signs of the optimal control, but we need to slow down the faster dimension
+  get_gain() computes a gain g such that if um' = g*um is the maximum control allowed for the
+  faster dimension, it takes exactly the same time to reach its destination as the slower
+  dimension.
+
+  after this, lines 118-145, simply integrate the dynamics to generate a trajectory
+
+get_gain
+  minimizes the difference between the time taken by the faster dimension and the slower
+  dimension to reach their destinations. 
+  
+  the time of the faster dimension is a function of the gain "g" (function get_f on line 157)
+  also, the minimum is zero and the value of g is the one we are solving for, which is done
+  using binary search
