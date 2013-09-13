@@ -91,6 +91,9 @@ int test_double_integrator()
   bot_lcmgl_switch_buffer(lcmgl);
   
   rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
+  
+  rrts.system.test_extend_to();
+  return 0;
 
   float zero[4] = {0};
   float size[4] = {25, 25, 10, 10};
@@ -179,7 +182,7 @@ int main()
 {
   
   //test_single_integrator();
-  //test_double_integrator();
-  test_brrts();
+  test_double_integrator();
+  //test_brrts();
   return 0;
 };

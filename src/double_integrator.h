@@ -166,10 +166,14 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       float x10 = x0[0];
       float dx10 = x0[1];
       
-      float g=0.5, gm=1e-6, gp=1-1e-6;
+      float g=0.5, gm=1e-12, gp=1-1e-12;
       float f, fm, fp;
       fm = get_f(x10, dx10, gm, um, T);
       fp = get_f(x10, dx10, gp, um, T);
+      if(fabs(fp)<1e-6)
+      {
+        return 1;
+      }
       if((fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
         return -1;
 
@@ -194,7 +198,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         c++;
         if(c > 100)
           cout<<"g: "<< g << " fm: "<< fm <<" fp: "<< fp <<" f: "<< f << endl;
-        is_converged = (gp-gm) < 0.1;
+        is_converged = (gp-gm) < 0.01;
       }
       return g;
     }
@@ -272,7 +276,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       trajectory_t traj;
       float zero[4] = {0};
       state_t origin(zero);
-      float goal[4] = {2, 2, 3, 3};
+      float goal[4] = {10, 10, 2, 1};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 
