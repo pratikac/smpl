@@ -45,6 +45,7 @@ class state_c
       state_c toret = *this;
       for(size_t i=0; i<N; i++)
         toret.x[i] += s2.x[i];
+      
       return toret;
     }
     float operator[](const size_t i) const 
@@ -93,6 +94,7 @@ class trajectory_c
     vector<control_t> controls;
     float total_variation;
     float dt;
+    float t0;
 
     trajectory_c() : total_variation(0), dt(0){}
     

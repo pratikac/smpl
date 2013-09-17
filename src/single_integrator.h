@@ -30,15 +30,9 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
 
     int get_plotter_state(const state_t& s, float* ps)
     {
-      for(int i=0; i<3; i++)
-        ps[i] = 0;
-      if(N < 4){
-        for(int i=0; i<N-1; i++)
-          ps[i] = s[i];
-      }
-      else{
-        cout<<"plotting single integrator for N > 3"<<endl;
-      }
+      int m = min(3,(int)N);
+      for(int i=0; i<m; i++)
+        ps[i] = s[i];
       return 0;
     }
 

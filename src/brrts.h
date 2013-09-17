@@ -41,6 +41,7 @@ class bvertex_c
 
     bvertex* child;
     state_t state;
+    float t0;
     set<bvertex*> parents;
 
     int mark;
@@ -54,6 +55,7 @@ class bvertex_c
       child = NULL;
       bedge_to_child = NULL;
       mark = 0;
+      t0 =0;
     }
     ~bvertex_c()
     {
@@ -66,6 +68,7 @@ class bvertex_c
       bedge_to_child = NULL;
       state = si;
       mark = 0;
+      t0 =0;
     }
     
     string tostring() const
@@ -101,19 +104,22 @@ class bedge_c
 
     cost_t cost;
     opt_data_t opt_data;
+    float dt;
 
     bedge_c()
     {
       end_state = NULL;
       start_state = NULL;
+      dt = 0;
     };
 
-    bedge_c(const state* si, const state* se, cost_t& c, opt_data_t& opt_data_in)
+    bedge_c(const state* si, const state* se, cost_t& c, float dt_in, opt_data_t& opt_data_in)
     {
       start_state = si;
       end_state = se;
       opt_data = opt_data_in;
       cost = c;
+      dt = dt_in;
     }
 };
 
@@ -259,7 +265,29 @@ class brrts_c
       return 0;
     }
 
-    int iteration(state* s_in = NULL)
+    int check_collision_trajectory(const trajectory_t& t1, const trajectory_t& t2, float dmax)
+    {
+      float dmin = FLT_MAX/2;
+      float t = min(t1.t0, t2.t0);
+      float dt = t1.dt;
+      float T = min(t1.t0 + t1.dt*t1.states.size(), t2.t0 + t2.dt*t2.states.size());
+      
+      int i = 0;
+      while(t < T)
+      {
+        auto& s1 = t1.states[i];
+        auto& s2 = t2.states[i];
+        float t3 = s1.dist(s2);
+        if(t3 < dmax)
+          return true;
+        
+        i += 10;
+        t += 10*dt;
+      }
+      return false;
+    }
+        
+    int iteration(state* s_in = NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
     {
       last_added_bvertex = NULL;
 
@@ -290,10 +318,22 @@ class brrts_c
       if(find_best_child(sr, near_vertices, best_child, bedge_to_child))
         return 3;
 
+      // 4.a check if the trajectory new sample collides with collision_trajectory
+      if(obstacle_trajectory)
+      {
+        trajectory_t tmp_traj;
+          system.extend_to(sr, best_child->state, false,
+              tmp_traj, bedge_to_child->opt_data);
+        tmp_traj.t0 = best_child->t0; 
+
+        if(check_collision_trajectory(*obstacle_trajectory, tmp_traj, collision_distance))
+          return 4;
+      }
+      
       // 4. draw bedge to child from new bvertex
       bvertex* new_bvertex = insert_bedge(*best_child, *bedge_to_child);
       if(!new_bvertex)
-        return 4;
+        return 5;
 
       // 5. rewire
       if(near_vertices.size())
@@ -439,6 +479,8 @@ class brrts_c
 
     int insert_bedge(bvertex& vp, bedge& e, bvertex& vc)
     {
+      vc.t0 = vp.t0 + e.dt;
+
       vp.cost_to_child = e.cost;
       vp.cost_to_root = vc.cost_to_root + vp.cost_to_child;
       update_best_bvertex(vp);
@@ -493,8 +535,9 @@ class brrts_c
         cost_t& bedge_cost = get<0>(bvertex_map[p.first]);
         if(!system.extend_to(si, v.state, check_obstacles,traj, opt_data))
         {
+          float edge_duration = system.dynamical_system.evaluate_extend_cost(si, v.state, opt_data);
           best_child = &v;
-          best_bedge = new bedge(&si, &(v.state), bedge_cost, opt_data);
+          best_bedge = new bedge(&si, &(v.state), bedge_cost, edge_duration, opt_data);
           //cout<<"best_bedge.cost: "<< best_bedge.cost.val << endl;
           return 0;
         }
@@ -539,7 +582,9 @@ class brrts_c
         {
           if(system.extend_to(vn.state, v.state, check_obstacles, traj, opt_data))
             continue;
-          bedge* en = new bedge(&(vn.state), &(v.state), cost_bedge, opt_data);
+          
+          float en_dt = system.dynamical_system.evaluate_extend_cost(vn.state, v.state, opt_data);
+          bedge* en = new bedge(&(vn.state), &(v.state), cost_bedge, en_dt, opt_data);
           insert_bedge(vn, *en, v);
 
           update_branch_cost(vn, 0);

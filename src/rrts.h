@@ -41,6 +41,7 @@ class vertex_c
 
     vertex* parent;
     state_t state;
+    float t0;
     set<vertex*> children;
 
     int mark;
@@ -54,6 +55,7 @@ class vertex_c
       parent = NULL;
       edge_from_parent = NULL;
       mark = 0;
+      t0 = 0;
     }
     ~vertex_c()
     {
@@ -66,6 +68,7 @@ class vertex_c
       edge_from_parent = NULL;
       state = si;
       mark = 0;
+      t0 =0;
     }
     
     string tostring() const
@@ -101,19 +104,22 @@ class edge_c
 
     cost_t cost;
     opt_data_t opt_data;
+    float dt;
 
     edge_c()
     {
       end_state = NULL;
       start_state = NULL;
+      dt = 0;
     };
 
-    edge_c(const state* si, const state* se, cost_t& c, opt_data_t& opt_data_in)
+    edge_c(const state* si, const state* se, cost_t& c, float dt_in, opt_data_t& opt_data_in)
     {
       start_state = si;
       end_state = se;
       opt_data = opt_data_in;
       cost = c;
+      dt = dt_in;
     }
 };
 
@@ -257,7 +263,29 @@ class rrts_c
       return 0;
     }
 
-    int iteration(state* s_in = NULL)
+    int check_collision_trajectory(const trajectory_t& t1, const trajectory_t& t2, float dmax)
+    {
+      float dmin = FLT_MAX/2;
+      float t = min(t1.t0, t2.t0);
+      float dt = t1.dt;
+      float T = min(t1.t0 + t1.dt*t1.states.size(), t2.t0 + t2.dt*t2.states.size());
+      
+      int i = 0;
+      while(t < T)
+      {
+        auto& s1 = t1.states[i];
+        auto& s2 = t2.states[i];
+        float t3 = s1.dist(s2);
+        if(t3 < dmax)
+          return true;
+        
+        i += 10;
+        t += 10*dt;
+      }
+      return false;
+    }
+
+    int iteration(state* s_in = NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
     {
       last_added_vertex = NULL;
 
@@ -288,10 +316,22 @@ class rrts_c
       if(find_best_parent(sr, near_vertices, best_parent, edge_from_parent))
         return 3;
 
+      // 4.a check if the trajectory new sample collides with collision_trajectory
+      if(obstacle_trajectory)
+      {
+        trajectory_t tmp_traj;
+          system.extend_to(best_parent->state, sr, false,
+              tmp_traj, edge_from_parent->opt_data);
+        tmp_traj.t0 = best_parent->t0;
+
+        if(check_collision_trajectory(*obstacle_trajectory, tmp_traj, collision_distance))
+          return 4;
+      }
+      
       // 4. draw edge to parent from new vertex
       vertex* new_vertex = insert_edge(*best_parent, *edge_from_parent);
       if(!new_vertex)
-        return 4;
+        return 5;
 
       // 5. rewire
       if(near_vertices.size())
@@ -336,6 +376,7 @@ class rrts_c
         vc = vparent;
       }
       root_traj.reverse();
+      root_traj.t0 = 0;
       return 0;
     }
 
@@ -439,6 +480,8 @@ class rrts_c
 
     int insert_edge(vertex& vs, edge& e, vertex& ve)
     {
+      ve.t0 = vs.t0 + e.dt;
+
       ve.cost_from_parent = e.cost;
       ve.cost_from_root = vs.cost_from_root + ve.cost_from_parent;
       update_best_vertex(ve);
@@ -494,7 +537,8 @@ class rrts_c
         if(!system.extend_to(v.state, si, check_obstacles,traj, opt_data))
         {
           best_parent = &v;
-          best_edge = new edge(&(v.state), &si, edge_cost, opt_data);
+          float edge_duration = system.dynamical_system.evaluate_extend_cost(v.state, si, opt_data);
+          best_edge = new edge(&(v.state), &si, edge_cost, edge_duration, opt_data);
           //cout<<"best_edge.cost: "<< best_edge.cost.val << endl;
           return 0;
         }
@@ -539,7 +583,9 @@ class rrts_c
         {
           if(system.extend_to(v.state, vn.state, check_obstacles, traj, opt_data))
             continue;
-          edge* en = new edge(&(v.state), &(vn.state), cost_edge, opt_data);
+          
+          float en_dt = system.dynamical_system.evaluate_extend_cost(v.state, vn.state, opt_data);
+          edge* en = new edge(&(v.state), &(vn.state), cost_edge, en_dt, opt_data);
           insert_edge(v, *en, vn);
 
           update_branch_cost(vn,0);

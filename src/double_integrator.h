@@ -186,6 +186,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         if(f < -FLT_MAX/2)
           return -1;
         
+        if(fabs(f) < 0.01)
+          return g;
+
         if(f*fm < 0){
           gp = g;
           fp = get_f(x10, dx10, gp, um, T);
@@ -276,7 +279,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       trajectory_t traj;
       float zero[4] = {0};
       state_t origin(zero);
-      float goal[4] = {10, 10, 2, 1};
+      float goal[4] = {10, 5, -2, 1};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 
