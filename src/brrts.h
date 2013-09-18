@@ -376,6 +376,7 @@ class brrts_c
         }
         vc = vchild;
       }
+      root_traj.t0 = 0;
       return 0;
     }
 

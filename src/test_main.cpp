@@ -95,18 +95,22 @@ int test_double_integrator()
   float zero[4] = {0};
   float size[4] = {25, 25, 5, 5};
   rrts.system.operating_region = region(zero, size);
+  rrts.goal_sample_freq = 0.01;
 
   float gc[4] = {10,5,-2,1};
   float gs[4] = {0.1,0.1,0.1,0.1};
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
 
+  rrts.system.test_extend_to();
+  return 0;
+
   state origin(zero);
   rrts.initialize(origin, lcmgl);
 
   tt clock;
   clock.tic();
-  int max_iterations = 1e4, diter=max_iterations/10;
+  int max_iterations = 1e4, diter=1;
   for(int i=0; i<max_iterations; i++)
   {
     rrts.iteration();
@@ -116,6 +120,7 @@ int test_double_integrator()
       rrts.plot_tree();
       rrts.plot_best_trajectory();
       bot_lcmgl_switch_buffer(lcmgl);
+      getchar();
     }
   }
   rrts.plot_tree();

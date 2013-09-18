@@ -55,12 +55,10 @@ class state_c
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const
     {
       if(prefix)
-        os<<prefix<<" [";
-      else
-        os<<" [";
+        os<<prefix<<" ";
       for(size_t i=0; i<N-1; i++)
         os<<x[i]<<",";
-      os<<x[N-1]<<"]";
+      os<<x[N-1]<<";";
       if(suffix)
         os<<suffix;
       return os;
@@ -117,8 +115,8 @@ class trajectory_c
     }
     int append(trajectory_c& t2)
     {
-      if(dt > 1e-3)
-        assert( fabs(dt - t2.dt) < 1e-3);
+      //if(dt > 1e-3)
+        //assert( fabs(dt - t2.dt) < 1e-3);
       dt = t2.dt;
       total_variation += t2.total_variation;
       states.insert(states.end(), t2.states.begin(), t2.states.end());
@@ -134,7 +132,7 @@ class trajectory_c
     int print(const char* prefix="traj")
     {
       print_states("states");
-      print_controls("controls");
+      //print_controls("controls");
       return 0;
     }
     int print_states(const char* prefix="")

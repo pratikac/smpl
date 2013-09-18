@@ -26,13 +26,13 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef double_integrator_optimization_data_c double_integrator_opt_data_t;
     
     float umm;
-    double_integrator_c() : umm(1) {}
+    double_integrator_c() : umm(0.5) {}
     
     int get_plotter_state(const state_t& s, float* ps)
     {
       ps[0] = s[0];
       ps[1] = s[1];
-      ps[2] = 0; //sqrt(s[2]*s[2]+s[3]*s[3]);
+      ps[2] = sqrt(s[2]*s[2]+s[3]*s[3]);
       return 0;
     }
 
@@ -183,10 +183,10 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       {
         g = (gm+gp)/2.0;
         f = get_f(x10, dx10, g, um, T);
-        if(f < -FLT_MAX/2)
+        if((f < -FLT_MAX/2) || (f != f))
           return -1;
         
-        if(fabs(f) < 0.01)
+        if(fabs(f) < 1e-6)
           return g;
 
         if(f*fm < 0){
@@ -201,7 +201,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         c++;
         if(c > 100)
           cout<<"g: "<< g << " fm: "<< fm <<" fp: "<< fp <<" f: "<< f << endl;
-        is_converged = (gp-gm) < 0.01;
+        is_converged = (gp-gm) < 1e-6;
       }
       return g;
     }
@@ -276,18 +276,27 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
 
     void test_extend_to()
     {
-      trajectory_t traj;
-      float zero[4] = {0};
+      trajectory_t traj1, traj2;
+      float zero[4] = {1, 2, -1, 0.1};
       state_t origin(zero);
       float goal[4] = {10, 5, -2, 1};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 
       double_integrator_optimization_data_c opt_data;
-      if(extend_to(origin, sr, traj, opt_data))
+      if(extend_to(origin, sr, traj1, opt_data))
         cout<<"could not connect"<<endl;
-      cout<<"cost: "<< traj.total_variation<<endl;
-      traj.print();
+      //traj1.print();
+
+      float g2[4] = {12, 4, 1, -1};
+      state_t sg2(g2);
+      sg2.print(cout, "second goal:","\n");
+      
+      double_integrator_optimization_data_c opt_data2;
+      if(extend_to(sr, sg2, traj2, opt_data2))
+        cout<<"could not connect"<<endl;
+      traj1.append(traj2);
+      traj1.print();
     }
 }; 
 
