@@ -28,7 +28,7 @@ class region_c
       color[0] = 1;
       color[1] = 0;
       color[2] = 0;
-      color[3] = 0.5;
+      color[3] = 0.1;
     }
     
     region_c(const float* cin, const float* sin)
@@ -41,7 +41,7 @@ class region_c
       color[0] = 1;
       color[1] = 0;
       color[2] = 0;
-      color[3] = 0.5;
+      color[3] = 0.1;
     }
     
     virtual bool is_inside(const state_c<N>& sin) const

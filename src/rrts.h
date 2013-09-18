@@ -5,6 +5,7 @@
 #include <set>
 #include <vector>
 #include <set>
+#include <queue>
 #include <cfloat>
 #include "kdtree.h"
 #include <algorithm>
@@ -148,6 +149,7 @@ class rrts_c
 
     int num_vertices;
     list<vertex*> list_vertices;
+
     float gamma;
     float goal_sample_freq;
     bool do_branch_and_bound;
@@ -285,7 +287,7 @@ class rrts_c
       return false;
     }
 
-    int iteration(state* s_in = NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
+    int iteration(state* s_in = NULL, set<vertex*>* rewired_vertices=NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
     {
       last_added_vertex = NULL;
 
@@ -335,7 +337,7 @@ class rrts_c
 
       // 5. rewire
       if(near_vertices.size())
-        rewire_vertices(*new_vertex, near_vertices);
+        rewire_vertices(*new_vertex, near_vertices, rewired_vertices);
       
       last_added_vertex = new_vertex;
       return 0;
@@ -566,7 +568,7 @@ class rrts_c
       return 0;
     }
 
-    int rewire_vertices(vertex& v, const vector<vertex*>& near_vertices)
+    int rewire_vertices(vertex& v, const vector<vertex*>& near_vertices, set<vertex*>* rewired_vertices)
     {
       bool check_obstacles = true;
       for(auto& pvn : near_vertices)
@@ -577,7 +579,9 @@ class rrts_c
         cost_t cost_edge;
         if(system.evaluate_extend_cost(v.state, vn.state, opt_data, cost_edge))
           continue;
-
+        
+        if(rewired_vertices)
+          rewired_vertices->insert(pvn);
         cost_t cvn = v.cost_from_root + cost_edge;
         if(cvn < vn.cost_from_root)
         {

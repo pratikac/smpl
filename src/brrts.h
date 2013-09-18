@@ -287,7 +287,7 @@ class brrts_c
       return false;
     }
         
-    int iteration(state* s_in = NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
+    int iteration(state* s_in = NULL, set<bvertex*>* rewired_vertices=NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
     {
       last_added_bvertex = NULL;
 
@@ -337,7 +337,7 @@ class brrts_c
 
       // 5. rewire
       if(near_vertices.size())
-        rewire_vertices(*new_bvertex, near_vertices);
+        rewire_vertices(*new_bvertex, near_vertices, rewired_vertices);
       
       last_added_bvertex = new_bvertex;
       return 0;
@@ -565,7 +565,7 @@ class brrts_c
       return 0;
     }
 
-    int rewire_vertices(bvertex& v, const vector<bvertex*>& near_vertices)
+    int rewire_vertices(bvertex& v, const vector<bvertex*>& near_vertices, set<bvertex*>* rewired_vertices)
     {
       bool check_obstacles = true;
       for(auto& pvn : near_vertices)
@@ -577,6 +577,8 @@ class brrts_c
         if(system.evaluate_extend_cost(vn.state, v.state, opt_data, cost_bedge))
           continue;
 
+        if(rewired_vertices)
+          rewired_vertices->insert(pvn);
         cost_t cvn = v.cost_to_root + cost_bedge;
         if(cvn < vn.cost_to_root)
         {
