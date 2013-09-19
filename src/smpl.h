@@ -8,6 +8,7 @@
 #include "rrts.h"
 #include "dynamical_system.h"
 #include "dintdrift.h"
+#include "dubins_velocity.h"
 #include "map.h"
 #include "brrts.h"
 #include "system.h"

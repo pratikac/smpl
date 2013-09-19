@@ -1,44 +1,54 @@
-#ifndef __dubins_h__
-#define __dubins_h__
+#ifndef __dubins_velocity_h__
+#define __dubins_velocity_h__
 
 #include <float.h>
 #include <iostream>
 #include "dynamical_system.h"
 using namespace std;
 
-class dubins_optimization_data_c : public optimization_data_c
+class dubins_velocity_optimization_data_c : public optimization_data_c
 {
   public:
     int turning_radius;
-    dubins_optimization_data_c() : turning_radius(-1){}
-    ~dubins_optimization_data_c(){}
+    float accel;
+    float T;
+    bool is_initialized;
+    dubins_velocity_optimization_data_c() : turning_radius(-1), is_initialized(false){}
+    ~dubins_velocity_optimization_data_c(){}
 };
 
-class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_optimization_data_c >
+class dubins_velocity_c : public dynamical_system_c<state_c<4>, control_c<2>, dubins_velocity_optimization_data_c >
 {
   public:
     typedef typename dynamical_system_c::state_t state_t;
     typedef typename dynamical_system_c::control_t control_t;
     typedef dynamical_system_c::trajectory_t trajectory_t;
-    typedef dubins_optimization_data_c dubins_optimization_data_t;
+    typedef dubins_velocity_optimization_data_c dubins_velocity_optimization_data_t;
 
     float delta_distance;
+    float accel_max;
 
 #define num_turning_radii   (1)
+#define num_velocities      (4)
     float turning_radii[num_turning_radii];
+    float velocities[num_velocities];
 
-    dubins_c() : delta_distance(0.05)
+    dubins_velocity_c() : delta_distance(0.05), accel_max(1.0)
     {
       turning_radii[0] = 3.5;
       //turning_radii[1] = 6;
       //turning_radii[2] = 8;
+      velocities[0] = 0;
+      velocities[1] = 0.25;
+      velocities[2] = 0.5;
+      velocities[3] = 1;
     };
 
     int get_plotter_state(const state_t& s, float* ps)
     {
       ps[0] = s[0];
       ps[1] = s[1];
-      ps[2] = 0;
+      ps[2] = s[3];
       return 0;
     }
 
@@ -46,10 +56,12 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
     {
       for(int i : range(0,3))
         s[i] = center[i] + (RANDF-0.5)*size[i];
+      int p = RANDF*4.0; 
+      s[3] = velocities[p];
       return 0;
     }
     
-    int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, dubins_optimization_data_t& opt_data)
+    int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, dubins_velocity_optimization_data_t& opt_data)
     {
       bool return_trajectory = true;
       if(opt_data.turning_radius < 0)
@@ -58,22 +70,24 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
           return 1;
       }
       int& best_turning_radius = opt_data.turning_radius;
-      extend_dubins_all(si.x, sf.x, return_trajectory, traj, turning_radii[best_turning_radius]);
+      float accel = opt_data.accel;
+      extend_dubins_all(si.x, sf.x, return_trajectory, traj, turning_radii[best_turning_radius], accel);
       return 0;
     }
     
     float evaluate_extend_cost(const state_t& si, const state_t& sf,
-        dubins_optimization_data_t& opt_data)
+        dubins_velocity_optimization_data_t& opt_data)
     {
       trajectory_t traj;
-      if(opt_data.turning_radius >= 0)
+      if(opt_data.is_initialized)
       {
         float tr = turning_radii[opt_data.turning_radius];
-        return extend_dubins_all(si.x, sf.x, false, traj, tr);
+        return extend_dubins_all(si.x, sf.x, false, traj, tr, opt_data.accel);
       }
       else
       {
         float min_cost = FLT_MAX;
+        float dummy_accel;
 
         int& best_turning_radius = opt_data.turning_radius;
         best_turning_radius = -1;
@@ -82,28 +96,39 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
         for(int i=num_turning_radii-1; i >=0; i--)
         {
           float tr = turning_radii[i];
-          float cost = extend_dubins_all(si.x, sf.x, return_trajectory, traj, tr);
+          float cost = extend_dubins_all(si.x, sf.x, return_trajectory, traj, tr, dummy_accel);
           if(cost > 0)
           {
             if(cost < min_cost)
             {
               min_cost = cost;
               best_turning_radius = i;
+              opt_data.T = min_cost;
             }
           }
         }
         if((min_cost < 0) || (min_cost > FLT_MAX/2.0))
           return -1;
+
+        if(opt_data.T*accel_max > fabs(sf.x[3] - si.x[3]))
+        {
+          opt_data.accel = (sf[3] - si[3])/opt_data.T;
+          opt_data.is_initialized = true;
+        }
+        else
+          return -1;
+
         return min_cost;
       }
     }
 
-    float extend_dubins_spheres(const float si[3], const float sf[3], int comb_no, float turning_radius,
+    float extend_dubins_spheres(const float si[4], const float sf[4], int comb_no, float turning_radius, float accel,
         bool return_trajectory, trajectory_t& traj)
     {
       float x_s1 = si[0], x_s2 = sf[0];
       float y_s1 = si[1], y_s2 = sf[1];
       float t_s1 = si[2], t_s2 = sf[2];
+      float v_s1 = si[3], v_s2 = sf[3];
 
       float x_tr = x_s2 - x_s1;
       float y_tr = y_s2 - y_s1;
@@ -212,9 +237,9 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
         float del_t = del_d/turning_radius;
 
         float t_inc_curr = 0.0;
-
-        float state_curr[3] = {0};
-
+        float integration_time = 0;
+        float state_curr[4] = {0};
+      
         while (t_inc_curr < t_increment_s1) 
         {
           float t_inc_rel = del_t;
@@ -224,10 +249,13 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
             t_inc_rel -= t_inc_curr - t_increment_s1;
             t_inc_curr = t_increment_s1;
           }
+          integration_time += t_inc_rel*turning_radius;
 
           state_curr[0] = x_s1 + turning_radius * cos (direction_s1 * t_inc_curr + t_s1);
           state_curr[1] = y_s1 + turning_radius * sin (direction_s1 * t_inc_curr + t_s1);
           state_curr[2] = direction_s1 * t_inc_curr + t_s1 + ( (direction_s1 == 1) ? M_PI_2 : 3.0*M_PI_2);
+          state_curr[3] = v_s1 + accel*integration_time;
+
           const float control_curr = direction_s1*turning_radius;
 
           modulo_mpi_pi(state_curr[2]);
@@ -245,10 +273,13 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
             d_inc_rel -= d_inc_curr - distance;
             d_inc_curr = distance;
           }
+          integration_time += d_inc_rel;
 
           state_curr[0] = (x_end - x_start) * d_inc_curr / distance + x_start; 
           state_curr[1] = (y_end - y_start) * d_inc_curr / distance + y_start; 
           state_curr[2] = direction_s1 * t_inc_curr + t_s1 + ( (direction_s1 == 1) ? M_PI_2 : 3.0*M_PI_2);
+          state_curr[3] = v_s1 + accel*integration_time;
+          
           const float control_curr = 0;
 
           modulo_mpi_pi(state_curr[2]);
@@ -266,11 +297,14 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
             t_inc_rel -= t_inc_curr - t_increment_s2;
             t_inc_curr = t_increment_s2;
           }
+          integration_time += t_inc_rel*turning_radius;
 
           state_curr[0] = x_s2 + turning_radius * cos (direction_s2 * (t_inc_curr - t_increment_s2) + t_s2);
           state_curr[1] = y_s2 + turning_radius * sin (direction_s2 * (t_inc_curr - t_increment_s2) + t_s2);
           state_curr[2] = direction_s2 * (t_inc_curr - t_increment_s2) + t_s2 
             + ( (direction_s2 == 1) ?  M_PI_2 : 3.0*M_PI_2 );
+          state_curr[3] = v_s1 + accel*integration_time;
+          
           const float control_curr = direction_s2*turning_radius;
 
           modulo_mpi_pi(state_curr[2]);
@@ -282,8 +316,8 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       return total_cost;
     }
 
-    float extend_dubins_all(const float si[3], const float sf[3], bool return_trajectory,
-        trajectory_t& traj, float turning_radius)
+    float extend_dubins_all(const float si[4], const float sf[4], bool return_trajectory,
+        trajectory_t& traj, float turning_radius, float accel)
     {
       float ti = si[2];
       float tf = sf[2];
@@ -292,36 +326,40 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
       float sin_tf = sin (-tf);
       float cos_tf = cos (-tf);
 
-      float si_left[3] = {
+      float si_left[4] = {
         si[0] + turning_radius * sin_ti,
         si[1] + turning_radius * cos_ti,
-        ti + (float)(3 * M_PI_2)
+        ti + (float)(3 * M_PI_2),
+        si[3]
       };
-      float si_right[3] = {
+      float si_right[4] = {
         si[0] - turning_radius * sin_ti,
         si[1] - turning_radius * cos_ti,
-        ti + (float)M_PI_2
+        ti + (float)M_PI_2,
+        si[3]
       };
-      float sf_left[3] = {
+      float sf_left[4] = {
         sf[0] + turning_radius * sin_tf,
         sf[1] + turning_radius * cos_tf,
-        tf + (float)(3 * M_PI_2)
+        tf + (float)(3 * M_PI_2),
+        sf[3]
       };
-      float sf_right[3] = {
+      float sf_right[4] = {
         sf[0] - turning_radius * sin_tf,
         sf[1] - turning_radius * cos_tf,
-        tf + (float)M_PI_2
+        tf + (float)M_PI_2,
+        sf[3]
       };
 
       // 2. extend all four spheres
       float times[4]; 
-      times[0] = extend_dubins_spheres (si_left, sf_right, 1, turning_radius,
+      times[0] = extend_dubins_spheres (si_left, sf_right, 1, turning_radius, accel,
           return_trajectory, traj);
-      times[1] = extend_dubins_spheres (si_right, sf_left, 2, turning_radius,
+      times[1] = extend_dubins_spheres (si_right, sf_left, 2, turning_radius, accel,
           return_trajectory, traj);
-      times[2] = extend_dubins_spheres (si_left, sf_left, 3, turning_radius,
+      times[2] = extend_dubins_spheres (si_left, sf_left, 3, turning_radius, accel,
           return_trajectory, traj);
-      times[3] = extend_dubins_spheres (si_right, sf_right, 4, turning_radius,
+      times[3] = extend_dubins_spheres (si_right, sf_right, 4, turning_radius, accel,
           return_trajectory, traj);
 
       float min_time = FLT_MAX/2;
@@ -344,17 +382,16 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
     void test_extend_to()
     {
       trajectory_t traj;
-      float zero[3] ={0};
+      float zero[4] ={0};
       state_t origin(zero);
-      float goal[3] = {10, 5, 45/180*M_PI};
+      float goal[4] = {10, 2, M_PI/4, 1};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 
-      dubins_optimization_data_c opt_data;
+      dubins_velocity_optimization_data_c opt_data;
       extend_to(origin, sr, traj, opt_data);
       cout<<"cost: "<< traj.total_variation<<endl;
       traj.print();
-      traj.clear();
     }
 };
 

@@ -36,6 +36,13 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
       return 0;
     }
 
+    int sample_state(float* center, float* size, float* s)
+    {
+      for(int i : range(0,N))
+        s[i] = center[i] + (RANDF-0.5)*size[i];
+      return 0;
+    }
+
     int extend_to(const state_t& si, const state_t& sf,
         trajectory_t& traj, single_integrator_opt_data_t& opt_data)
     {

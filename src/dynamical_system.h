@@ -58,7 +58,7 @@ class state_c
 
     float operator[](const size_t i) const 
     {
-      assert(i < N);
+      assert((i < N) && (i >= 0));
       return x[i];
     }
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const
@@ -191,8 +191,10 @@ class dynamical_system_c
         th = th - 2*M_PI;
       return 0;
     }
+   
+    virtual int sample_state(float* center, float* size, float* s) = 0;
     
-    virtual int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, opt_data_t& opt_data)=0;
+      virtual int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, opt_data_t& opt_data)=0;
     virtual float evaluate_extend_cost(const state_t& si, const state_t& sf, opt_data_t& opt_data)=0;
     
     virtual int get_plotter_state(const state_t& s, float* ps)=0;

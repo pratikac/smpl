@@ -2,6 +2,7 @@
 #include <ctime>
 
 #include "dubins.h"
+#include "dubins_velocity.h"
 #include "single_integrator.h"
 #include "double_integrator.h"
 #include "rrts.h"
@@ -179,12 +180,67 @@ int test_brrts()
   return 0;
 }
 
+int test_dubins_velocity()
+{
+  typedef system_c<dubins_velocity_c, map_c<4>, region_c<4>, cost_c<1> > system_t;
+  
+  typedef system_t::state state;
+  typedef typename system_t::control control;
+  typedef typename system_t::trajectory trajectory;
+  typedef typename system_t::region_t region;
+  
+  lcm_t *lcm          = bot_lcm_get_global(NULL);
+  bot_lcmgl_t *lcmgl  = bot_lcmgl_init(lcm, "plotter");
+  bot_lcmgl_line_width(lcmgl, 2.0);
+  bot_lcmgl_switch_buffer(lcmgl);
+  
+  rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
+
+  float zero[4] = {0};
+  float size[4] = {25,25,2*M_PI, 5};
+  rrts.system.operating_region = region(zero, size);
+
+  float gc[4] = {10,10,0,1};
+  float gs[4] = {1,1,0.1*M_PI,0.1};
+  state goal_state(gc);
+  rrts.system.goal_region = region(gc,gs);
+ 
+  //rrts.system.test_extend_to();
+  //return 0;
+
+  state origin(zero);
+  rrts.initialize(origin);
+
+  tt clock;
+  clock.tic();
+  int max_iterations = 1e3, diter=max_iterations/10;
+  trajectory traj;
+  for(int i=0; i<max_iterations; i++)
+  {
+    rrts.iteration();
+    if(i%diter == 0)
+      cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
+      
+    rrts.plot_tree();
+    rrts.plot_best_trajectory();
+    bot_lcmgl_switch_buffer(lcmgl);
+  }
+  cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
+
+  rrts.plot_tree();
+  rrts.plot_best_trajectory();
+  bot_lcmgl_switch_buffer(lcmgl);
+  cout<<rrts.get_best_cost().val[0]<<endl;
+  
+  return 0;
+}
 
 int main()
 {
   
   //test_single_integrator();
-  test_double_integrator();
+  //test_double_integrator();
   //test_brrts();
+  test_dubins_velocity();
   return 0;
 };

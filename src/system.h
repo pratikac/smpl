@@ -221,8 +221,7 @@ class system_c
         bool found_free_state = false;
         while(!found_free_state)
         {
-          for(size_t i=0; i<N; i++)
-            s.x[i] = operating_region.c[i] + (RANDF-0.5)*operating_region.s[i];
+          dynamical_system.sample_state(operating_region.c, operating_region.s, s.x);
           found_free_state = !is_in_collision(s);
         }
       }
