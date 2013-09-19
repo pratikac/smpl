@@ -26,13 +26,13 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     typedef double_integrator_optimization_data_c double_integrator_opt_data_t;
     
     float umm;
-    double_integrator_c() : umm(0.5) {}
+    double_integrator_c() : umm(1) {}
     
     int get_plotter_state(const state_t& s, float* ps)
     {
       ps[0] = s[0];
       ps[1] = s[1];
-      ps[2] = sqrt(s[2]*s[2]+s[3]*s[3]);
+      ps[2] = 0; //sqrt(s[2]*s[2]+s[3]*s[3]);
       return 0;
     }
 
@@ -84,7 +84,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
             u2 = g*um;
 
           if(g < 0)
-            return -1;
+            return 1;
         }
         // dim 1 needs to slow down
         else
@@ -98,7 +98,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
             u1 = g*um;
 
           if(g < 0)
-            return -1;
+            return 1;
         }
         
         opt_data.t11 = t11;
@@ -115,11 +115,12 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         u2 = opt_data.u2;
       }
 #if 1 
-      float t = 0, dt = 0.05;
+      float t = 0, dt = 0.01;
       traj.dt = dt;
       state_t sc;
       sc.x[0] = x10; sc.x[1] = x20;
       sc.x[2] = dx10; sc.x[3] = dx20;
+      
       control_t cc;
       int num_steps = T/dt;
       traj.states.reserve(num_steps);
@@ -175,7 +176,10 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         return 1;
       }
       if((fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
+      {
+        cout<<"get_gain: 184, ret -1"<<endl;
         return -1;
+      }
 
       bool is_converged = false;
       int c = 0;
@@ -184,8 +188,11 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         g = (gm+gp)/2.0;
         f = get_f(x10, dx10, g, um, T);
         if((f < -FLT_MAX/2) || (f != f))
+        {
+          cout<<"get_gain: 196, ret -1"<<endl;
           return -1;
-        
+        }
+
         if(fabs(f) < 1e-6)
           return g;
 

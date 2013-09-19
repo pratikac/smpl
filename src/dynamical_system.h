@@ -48,8 +48,17 @@ class state_c
       
       return toret;
     }
+    state_c operator-(const state_c& s2) const
+    {
+      state_c toret = *this;
+      for(size_t i=0; i<N; i++)
+        toret.x[i] -= s2.x[i];
+      return toret;
+    }
+
     float operator[](const size_t i) const 
     {
+      assert(i < N);
       return x[i];
     }
     virtual ostream& print(ostream& os=cout, const char* prefix=NULL, const char* suffix=NULL) const

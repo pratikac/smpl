@@ -44,8 +44,11 @@ class region_c
       color[3] = 0.1;
     }
     
-    virtual bool is_inside(const state_c<N>& sin) const
+    virtual bool is_inside(const state_c<N>& sin, bool only_xy=false) const
     {
+      int Nm = N;
+      if(only_xy)
+        Nm = 2;
       for(size_t i=0; i<N; i++)
       {
         if(fabs(sin.x[i] - c[i]) > s[i]/2.0)
@@ -54,9 +57,12 @@ class region_c
       return true;
     }
     
-    virtual bool is_inside(const float sin[N]) const
+    virtual bool is_inside(const float sin[N], bool only_xy=false) const
     {
-      for(size_t i=0; i<N; i++)
+      int Nm = N;
+      if(only_xy)
+        Nm = 2;
+      for(size_t i=0; i<Nm; i++)
       {
         if(fabs(sin[i] - c[i]) > s[i]/2.0)
           return false;
@@ -188,7 +194,7 @@ class system_c
 
     virtual bool is_in_collision(const state& s)
     {
-      if(operating_region.is_inside(s))
+      if(operating_region.is_inside(s, true))
         return obstacle_map.is_in_collision(s.x);
       else
         return true;
@@ -244,19 +250,15 @@ class system_c
       if(traj.states.empty())
         return true;
 
-      state sm;
       int drop_counter=0;
-      for(auto& x : traj.states)
+      for(auto& s : traj.states)
       {
-        if(!drop_counter)
+        if(drop_counter %10 == 0)
         {
-          sm = state(x);
-          if(is_in_collision(sm))
+          if(is_in_collision(s))
             return false;
         }
         drop_counter++;
-        if(drop_counter == 25)
-          drop_counter = 0;
       }
       return true;
     }
