@@ -101,14 +101,14 @@ int test_double_integrator()
   rrts.system.goal_region = region(gc,gs);
 
   rrts.system.test_extend_to();
-  return 0;
+  getchar();
 
   state origin(zero);
   rrts.initialize(origin, lcmgl);
 
   tt clock;
   clock.tic();
-  int max_iterations = 1e4, diter=1;
+  int max_iterations = 1e5, diter=1000;
   for(int i=0; i<max_iterations; i++)
   {
     rrts.iteration();
@@ -118,7 +118,7 @@ int test_double_integrator()
       rrts.plot_tree();
       rrts.plot_best_trajectory();
       bot_lcmgl_switch_buffer(lcmgl);
-      getchar();
+      //getchar();
     }
   }
   rrts.plot_tree();
@@ -213,7 +213,7 @@ int test_dubins_velocity()
 
   tt clock;
   clock.tic();
-  int max_iterations = 1e3, diter=max_iterations/10;
+  int max_iterations = 1e3, diter=1;
   trajectory traj;
   for(int i=0; i<max_iterations; i++)
   {
@@ -224,6 +224,7 @@ int test_dubins_velocity()
     rrts.plot_tree();
     rrts.plot_best_trajectory();
     bot_lcmgl_switch_buffer(lcmgl);
+    getchar();
   }
   cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
 
@@ -239,8 +240,8 @@ int main()
 {
   
   //test_single_integrator();
-  //test_double_integrator();
+  test_double_integrator();
   //test_brrts();
-  test_dubins_velocity();
+  //test_dubins_velocity();
   return 0;
 };

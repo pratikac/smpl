@@ -41,7 +41,7 @@ class dubins_velocity_c : public dynamical_system_c<state_c<4>, control_c<2>, du
       velocities[0] = 0;
       velocities[1] = 0.25;
       velocities[2] = 0.5;
-      velocities[3] = 1;
+      velocities[3] = 0.75;
     };
 
     int get_plotter_state(const state_t& s, float* ps)

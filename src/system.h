@@ -194,10 +194,15 @@ class system_c
 
     virtual bool is_in_collision(const state& s)
     {
+#if 0
       if(operating_region.is_inside(s, true))
         return obstacle_map.is_in_collision(s.x);
       else
         return true;
+#else
+      return obstacle_map.is_in_collision(s.x);
+#endif
+
     }
     float get_goal_cost(const state& s)
     {

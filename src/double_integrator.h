@@ -83,29 +83,28 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         if( fabs(T-T1) < 1e-6)
         {
           g = get_gain(t2, T, um);
-          get_time(t2, g*um, t21, t22);
+          if(g < 0)
+            return 1;
+          get_time(t2, fabs(g*um), t21, t22);
 
           if(is_right(t2[0], t2[1], g*um))
             u2 = -g*um;
           else
             u2 = g*um;
 
-          if(g < 0)
-            return 1;
         }
         // dim 1 needs to slow down
         else
         {
           g = get_gain(t1, T, um);
-          get_time(t1, g*um, t11, t12); 
+          if(g < 0)
+            return 1;
+          get_time(t1, fabs(g*um), t11, t12); 
 
           if(is_right(t1[0], t1[1], g*um))
             u1 = -g*um;
           else
             u1 = g*um;
-
-          if(g < 0)
-            return 1;
         }
         
         opt_data.t11 = t11;
@@ -127,11 +126,13 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       state_t sc;
       sc.x[0] = x10; sc.x[1] = x20;
       sc.x[2] = dx10; sc.x[3] = dx20;
-      
+
       control_t cc;
       int num_steps = T/dt;
       traj.states.reserve(num_steps);
       traj.controls.reserve(num_steps);
+      
+      traj.states.push_back(sc+sf);
       while(t < T)
       {
         if(t < t11)
@@ -143,10 +144,11 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         else
           cc.x[1] = -u2;
 
-        sc.x[2] += cc[0]*dt;
-        sc.x[3] += cc[1]*dt;
-        sc.x[0] += sc[2]*dt;
-        sc.x[1] += sc[3]*dt;
+        sc.x[2] += cc.x[0]*dt;
+        sc.x[0] += sc.x[2]*dt;
+        
+        sc.x[3] += cc.x[1]*dt;
+        sc.x[1] += sc.x[3]*dt;
 
         traj.states.push_back(sc+sf);
         traj.controls.push_back(cc);
@@ -184,7 +186,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       }
       if((fm < -FLT_MAX/2) || (fp < -FLT_MAX/2) || (fm*fp > 0))
       {
-        cout<<"get_gain: 184, ret -1"<<endl;
+        cout<<"get_gain: 190, ret -1"<<endl;
         return -1;
       }
 
@@ -196,7 +198,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         f = get_f(x10, dx10, g, um, T);
         if((f < -FLT_MAX/2) || (f != f))
         {
-          cout<<"get_gain: 196, ret -1"<<endl;
+          cout<<"get_gain: 202, ret -1"<<endl;
           return -1;
         }
 
@@ -291,6 +293,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
     void test_extend_to()
     {
       trajectory_t traj1, traj2;
+      
       float zero[4] = {1, 2, -1, 0.1};
       state_t origin(zero);
       float goal[4] = {10, 5, -2, 1};
@@ -300,8 +303,10 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
       double_integrator_optimization_data_c opt_data;
       if(extend_to(origin, sr, traj1, opt_data))
         cout<<"could not connect"<<endl;
-      //traj1.print();
-
+      traj1.print();
+      cout<<"first trajectory finished"<<endl;
+      
+      /*
       float g2[4] = {12, 4, 1, -1};
       state_t sg2(g2);
       sg2.print(cout, "second goal:","\n");
@@ -311,6 +316,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         cout<<"could not connect"<<endl;
       traj1.append(traj2);
       traj1.print();
+      */
     }
 }; 
 
