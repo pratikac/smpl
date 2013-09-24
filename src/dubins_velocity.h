@@ -29,18 +29,19 @@ class dubins_velocity_c : public dynamical_system_c<state_c<4>, control_c<2>, du
     float accel_max;
 
 #define num_turning_radii   (1)
-#define num_velocities      (4)
+#define num_velocities      (5)
     float turning_radii[num_turning_radii];
     float velocities[num_velocities];
 
     dubins_velocity_c() : delta_distance(0.05), accel_max(1.0)
     {
-      turning_radii[0] = 3.5;
+      turning_radii[0] = 3;
       //turning_radii[1] = 6;
       //turning_radii[2] = 8;
 #if 1
       velocities[0] = 0;
-      velocities[1] = 0.25;
+      velocities[1] = 0.1;
+      velocities[2] = 0.2;
       velocities[2] = 0.5;
       velocities[3] = 0.75;
 #else
@@ -62,6 +63,11 @@ class dubins_velocity_c : public dynamical_system_c<state_c<4>, control_c<2>, du
         s[i] = center[i] + (RANDF-0.5)*size[i];
       int p = RANDF*4.0; 
       s[3] = velocities[p];
+
+      while(s[2] > M_PI)
+        s[2] -= 2*M_PI;
+      while(s[2] < -M_PI)
+        s[2] += 2*M_PI;
       return 0;
     }
     
