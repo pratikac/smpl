@@ -38,10 +38,14 @@ class dubins_velocity_c : public dynamical_system_c<state_c<4>, control_c<2>, du
       turning_radii[0] = 3.5;
       //turning_radii[1] = 6;
       //turning_radii[2] = 8;
+#if 1
       velocities[0] = 0;
       velocities[1] = 0.25;
       velocities[2] = 0.5;
       velocities[3] = 0.75;
+#else
+      velocities[0] = 0.5;
+#endif
     };
 
     int get_plotter_state(const state_t& s, float* ps)
@@ -223,9 +227,10 @@ class dubins_velocity_c : public dynamical_system_c<state_c<4>, control_c<2>, du
 
       // comment turning_cost for testing
       float total_cost = (( fabs(ts1c) + fabs(ts2c)) * turning_radius  + distance);
-      float turning_cost = 0*(fabs(ts1c) + fabs(ts2c));
-      total_cost += turning_cost;
 
+      if((v_s2*v_s2 - v_s1*v_s1) > 2.0*accel_max*total_cost)
+        return -1.0;
+      
       if (return_trajectory) 
       {
         traj.clear();

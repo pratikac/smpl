@@ -28,20 +28,49 @@ class region_c
       color[0] = 1;
       color[1] = 0;
       color[2] = 0;
-      color[3] = 0.1;
+      color[3] = 0.01;
     }
     
-    region_c(const float* cin, const float* sin)
+    region_c(const float* cin, const float* sin, const float* color_in=NULL)
     {
       for(size_t i=0; i< N; i++)
       {
         s[i] = sin[i];
         c[i] = cin[i];
       }
-      color[0] = 1;
-      color[1] = 0;
-      color[2] = 0;
-      color[3] = 0.1;
+      if(color_in)
+      {
+        for(int i : range(0,4))
+          color[i] = color_in[i];
+      }
+      else
+      {
+        color[0] = 1;
+        color[1] = 0;
+        color[2] = 0;
+        color[3] = 0.01;
+      }
+    }
+
+    region_c(const double* cin, const double* sin, const double* color_in=NULL)
+    {
+      for(size_t i=0; i< N; i++)
+      {
+        s[i] = sin[i];
+        c[i] = cin[i];
+      }
+      if(color_in)
+      {
+        for(int i : range(0,4))
+          color[i] = color_in[i];
+      }
+      else
+      {
+        color[0] = 1;
+        color[1] = 0;
+        color[2] = 0;
+        color[3] = 0.01;
+      }
     }
     
     virtual bool is_inside(const state_c<N>& sin, bool only_xy=false) const
@@ -71,18 +100,11 @@ class region_c
     }
 
 
-    virtual int get_plotter_state(float* cp, float* sp)
+    virtual int get_plotter_state(float* cp, float* sp, int dim=3)
     {
-      if(N < 4){
-        memcpy(cp, c, 3*sizeof(float));
-        memcpy(sp, s, 3*sizeof(float));
-      }
-      else{
-        memset(cp, 0, 3*sizeof(float));
-        memset(sp, 0, 3*sizeof(float));
-        cout<<"asked to draw region with dim > 3"<<endl;
-        return 1;
-      }
+      int d = min(dim,(int)N);
+      memcpy(cp, c, d*sizeof(float));
+      memcpy(sp, s, d*sizeof(float));
       return 0;
     }
 };
@@ -175,8 +197,12 @@ class system_c
 
     region_t operating_region;
     region_t goal_region;
+    vector<region_t> heuristic_sampling_regions;
+    float heuristic_sampling_probability;
 
-    system_c(){};
+    system_c(){
+      heuristic_sampling_probability = 0.5;
+    };
     ~system_c(){}
 
     virtual int get_key(const state& s, float* key)
@@ -226,7 +252,20 @@ class system_c
         bool found_free_state = false;
         while(!found_free_state)
         {
-          dynamical_system.sample_state(operating_region.c, operating_region.s, s.x);
+          float p = RANDF;
+          region_t* r = &operating_region;
+          if(heuristic_sampling_regions.size())
+          {
+            if(p > heuristic_sampling_probability)
+              r = &operating_region;
+            else
+            {
+              int which = RANDF*heuristic_sampling_regions.size();
+              r = &(heuristic_sampling_regions[which]);
+            }
+          }
+
+          dynamical_system.sample_state(r->c, r->s, s.x);
           found_free_state = !is_in_collision(s);
         }
       }

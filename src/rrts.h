@@ -268,21 +268,45 @@ class rrts_c
     int check_collision_trajectory(const trajectory_t& t1, const trajectory_t& t2, float dmax)
     {
       float dmin = FLT_MAX/2;
+      int which_proceed = 1;
+      if(t1.t0 > t2.t0)
+        which_proceed = 2;
+
       float t = min(t1.t0, t2.t0);
+      float ts = max(t1.t0, t2.t0);
       float dt = t1.dt;
       float T = min(t1.t0 + t1.dt*t1.states.size(), t2.t0 + t2.dt*t2.states.size());
       
-      int i = 0;
+      int iter1 = 0;
+      int iter2 = 0;
+      if(which_proceed == 1)
+      {
+        while(t<ts)
+        {
+          iter1++;
+          t += t1.dt;
+        }
+      }
+      else if(which_proceed == 2)
+      {
+        while(t < ts)
+        {
+          iter2++;
+          t += t2.dt;
+        }
+      }
+
       while(t < T)
       {
-        auto& s1 = t1.states[i];
-        auto& s2 = t2.states[i];
+        auto& s1 = t1.states[iter1];
+        auto& s2 = t2.states[iter2];
         float t3 = s1.dist(s2);
         if(t3 < dmax)
           return true;
         
-        i += 10;
-        t += 10*dt;
+        iter1 += 5;
+        iter2 += 5;
+        t += 5*dt;
       }
       return false;
     }
@@ -613,7 +637,7 @@ class rrts_c
     {
       v.mark = 1;
       for(auto& pc : v.children)
-        mark_descendent_vertices(*pc);
+        mark_descendent_vertices(*(static_cast<vertex*>(pc)));
       return 0;
     }
     
@@ -640,6 +664,28 @@ class rrts_c
       for(auto& pc : v.children)
         mark_vertex_and_remove_from_parent(*pc);
       return 0;
+    }
+
+    int delete_downstream(vertex& v)
+    {
+      v.parent->children.erase(&v);
+      mark_descendent_vertices(v);
+      list<vertex*> surviving_vertices;
+      for(auto& pv : list_vertices)
+      {
+        if(pv->mark == 0)
+          surviving_vertices.push_back(pv);
+        else
+          delete pv;
+      }
+      if(kdtree)
+        kd_free(kdtree);
+      kdtree = kd_create(num_dim);
+
+      list_vertices.clear();
+      num_vertices = 0;
+      for(auto& pv : surviving_vertices)
+        insert_into_kdtree(*pv); 
     }
 
     int check_and_mark_children(vertex& v)
@@ -927,11 +973,11 @@ class rrts_c
       plot_trajectory(best_trajectory, best_lines_color, best_lines_width); 
     }
 
-    void plot_region(region_t& r)
+    void plot_region(region_t& r, int dim=3)
     {
       float c[3] = {0};
       float s[3] = {0};
-      r.get_plotter_state(c, s);
+      r.get_plotter_state(c, s, dim);
       bot_lcmgl_color4f(lcmgl, r.color[0], r.color[1], r.color[2], r.color[3]);
       double cd[3] = {0};
       for(int i=0; i<3; i++)
