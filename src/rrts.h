@@ -371,6 +371,7 @@ class rrts_c
     int get_trajectory_root(vertex& v, trajectory_t& root_traj)
     {
       root_traj.clear();
+
       bool check_obstacles = false;
       vertex* vc = static_cast<vertex*>(&v);
       while(vc)
@@ -386,8 +387,14 @@ class rrts_c
         }
         vc = vparent;
       }
+      
+      root_traj.states.push_back(root->state);
+      float first_control = 0;
+      root_traj.controls.push_back(control(&first_control));
+      
       root_traj.reverse();
       root_traj.t0 = 0;
+      root_traj.dt = 0.05;
       return 0;
     }
 
