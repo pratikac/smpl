@@ -67,7 +67,7 @@ class state_c
         os<<prefix<<" ";
       for(size_t i=0; i<N-1; i++)
         os<<x[i]<<",";
-      os<<x[N-1]<<";";
+      os<<x[N-1];
       if(suffix)
         os<<suffix;
       return os;
