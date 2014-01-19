@@ -1,4 +1,7 @@
 from sympy import *
+# needed to avoid integer divisions in sympy
+from __future__ import division
+
 init_session(quiet=True)
 
 u, um = symbols('u, um')
