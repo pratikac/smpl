@@ -2,17 +2,17 @@
 #ifndef __/HOME/PRATIK/CODE/SMPL/SRC/SMPL.H__
 #define __/HOME/PRATIK/CODE/SMPL/SRC/SMPL.H__
 
-#include "dubins.h"
-#include "single_integrator.h"
-#include "kdtree.h"
-#include "rrts.h"
-#include "dynamical_system.h"
 #include "dintdrift.h"
-#include "dubins_velocity.h"
+#include "kdtree.h"
+#include "dynamical_system.h"
 #include "map.h"
-#include "brrts.h"
 #include "system.h"
-#include "double_integrator.h"
+#include "dubins.h"
+#include "brrts.h"
 #include "utils.h"
+#include "double_integrator.h"
+#include "rrts.h"
+#include "dubins_velocity.h"
+#include "single_integrator.h"
 
 #endif //__/HOME/PRATIK/CODE/SMPL/SRC/SMPL.H__ 
