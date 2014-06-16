@@ -8,6 +8,7 @@
 #include "map.h"
 #include "system.h"
 #include "dubins.h"
+#include "reeds_shepp.h"
 #include "brrts.h"
 #include "utils.h"
 #include "double_integrator.h"
