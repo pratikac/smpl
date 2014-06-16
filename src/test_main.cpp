@@ -5,6 +5,7 @@
 #include "dubins_velocity.h"
 #include "single_integrator.h"
 #include "double_integrator.h"
+#include "reeds_shepp.h"
 #include "rrts.h"
 #include "brrts.h"
 using namespace std;
@@ -296,6 +297,35 @@ int test_dubins_velocity()
   return 0;
 }
 
+int test_reeds_shepp()
+{
+  typedef system_c<reeds_shepp_c, map_c<3>, region_c<3>, cost_c<1> > system_t;
+  
+  typedef system_t::state state;
+  typedef typename system_t::control control;
+  typedef typename system_t::trajectory trajectory;
+  typedef typename system_t::region_t region;
+  
+  lcm_t *lcm          = bot_lcm_get_global(NULL);
+  bot_lcmgl_t *lcmgl  = bot_lcmgl_init(lcm, "plotter");
+  bot_lcmgl_line_width(lcmgl, 2.0);
+  bot_lcmgl_switch_buffer(lcmgl);
+  
+  rrts_c<vertex_c<system_t>, edge_c<system_t> > rrts(lcmgl);
+
+  float zero[3] = {0};
+  float size[3] = {25,25,2*M_PI};
+  rrts.system.operating_region = region(zero, size);
+
+  float gc[3] = {0};
+  float gs[3] = {0,0,175./180.*M_PI};
+  state goal_state(gc);
+  rrts.system.goal_region = region(gc,gs);
+ 
+  rrts.system.test_extend_to();
+  return 0;
+}
+
 int main()
 {
   
@@ -303,6 +333,7 @@ int main()
   //test_double_integrator();
   //test_dubins();
   //test_brrts();
-  test_dubins_velocity();
+  //test_dubins_velocity();
+  test_reeds_shepp();
   return 0;
 };
