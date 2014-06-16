@@ -6,7 +6,7 @@
 #include "dynamical_system.h"
 using namespace std;
 
-#define EPS       (1e-6)
+#define EPS       (1e-1)
 #define ZERO      (EPS)
 
 enum reeds_shepp_segment_type{
@@ -161,11 +161,9 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
         v = M(phi-t);
         if( v > -ZERO)
         {
-          /*
           assert(fabs(u*cos(t) + sin(phi) - x) < EPS);
           assert(fabs(u*sin(t) - cos(phi) + 1 - y) < EPS);
           assert(fabs(M(t+v - phi)) < EPS);
-          */
           return true;
         }
       }
@@ -184,12 +182,14 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
         th = atan2(2.,u);
         t = M(t1+th);
         v = M(t-phi);
-        /*
-        assert(fabs(2*sin(t) + u*cos(t) - sin(phi) - x) < EPS);
-        assert(fabs(-2*cos(t) + u*sin(t) + cos(phi) + 1 - y) < EPS);
-        assert(fabs(M(t-v - phi)) < EPS);
-        */
-        return t>=-ZERO && v>=-ZERO;
+        
+        if( t>=-ZERO && v>=-ZERO)
+        {
+          assert(fabs(2*sin(t) + u*cos(t) - sin(phi) - x) < EPS);
+          assert(fabs(-2*cos(t) + u*sin(t) + cos(phi) + 1 - y) < EPS);
+          assert(fabs(M(t-v - phi)) < EPS);
+          return true;
+        }
       }
       return false;
     }
@@ -204,12 +204,15 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
         u = -2*asin(u1/4.);
         t = M(th + u/2. + M_PI);
         v = M(phi-t+u);
-        /*
-        assert(fabs(2*(sin(t) - sin(t-u)) + sin(phi) - x) < EPS);
-        assert(fabs(2*(-cos(t) + cos(t-u)) - cos(phi) + 1 - y) < EPS);
-        assert(fabs(M(t-u+v - phi)) < EPS);
-        */
-        return t>=-ZERO && u<=ZERO;
+        if(t>=-ZERO && u<=ZERO)
+        {
+          /*
+          assert(fabs(2*(sin(t) - sin(t-u)) + sin(phi) - x) < EPS);
+          assert(fabs(2*(-cos(t) + cos(t-u)) - cos(phi) + 1 - y) < EPS);
+          assert(fabs(M(t-u+v - phi)) < EPS);
+          */
+          return true;
+        }
       }
       return false;
     }
@@ -222,10 +225,16 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
       {
         u = acos(rho);
         tau_omega(u, -u, xi, eta, phi, t, v);
-        assert(fabs(2*(sin(t)-sin(t-u)+sin(t-2*u))-sin(phi) - x) < EPS);
-        assert(fabs(2*(-cos(t)+cos(t-u)-cos(t-2*u))+cos(phi)+1 - y) < EPS);
-        assert(fabs(M(t-2*u-v - phi)) < EPS);
-        return t>=-ZERO && v<=ZERO;
+        
+        if(t>=-ZERO && v<=ZERO)
+        {
+          /*
+          assert(fabs(2*(sin(t)-sin(t-u)+sin(t-2*u))-sin(phi) - x) < EPS);
+          assert(fabs(2*(-cos(t)+cos(t-u)-cos(t-2*u))+cos(phi)+1 - y) < EPS);
+          assert(fabs(M(t-2*u-v - phi)) < EPS);
+          */
+          return true;
+        }
       }
       return false;
 
@@ -241,12 +250,13 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
         if (u >= -.5 * M_PI)
         {
           tau_omega(u, u, xi, eta, phi, t, v);
-          /*
-          assert(fabs(4*sin(t)-2*sin(t-u)-sin(phi) - x) < EPS);
-          assert(fabs(-4*cos(t)+2*cos(t-u)+cos(phi)+1 - y) < EPS);
-          assert(fabs(M(t-v - phi)) < EPS);
-          */
-          return t>=-ZERO && v>=-ZERO;
+          if(t>=-ZERO && v>=-ZERO)
+          {
+            assert(fabs(4*sin(t)-2*sin(t-u)-sin(phi) - x) < EPS);
+            assert(fabs(-4*cos(t)+2*cos(t-u)+cos(phi)+1 - y) < EPS);
+            assert(fabs(M(t-v - phi)) < EPS);
+            return true;
+          }
         }
       }
       return false;
@@ -255,20 +265,24 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
     // Eqn. 8.9
     inline bool lp_rm_sm_lm(double x, double y, double phi, double& t, double& u, double& v)
     {
-      double xi = x - sin(phi), eta = y - 1. + cos(phi), rho, theta;
-      R(xi, eta, rho, theta);
+      double xi = x + sin(phi), eta = y - 1. - cos(phi), rho, theta;
+      R(-eta, xi, rho, theta);
       if (rho >= 2.)
       {
+        double T, th1;
         double r = sqrt(rho*rho - 4.);
-        u = 2. - r;
-        t = M(theta + atan2(r, -2.));
+        R(r, -2, T, th1);
+        
+        t = M(theta -th1);
+        u = 2. - th1;
         v = M(phi - .5*M_PI - t);
-        /*
-        assert(fabs(2*(sin(t)-cos(t))-u*sin(t)+sin(phi) - x) < EPS);
-        assert(fabs(-2*(sin(t)+cos(t))+u*cos(t)-cos(phi)+1 - y) < EPS);
-        assert(fabs(M(t+M_PI/2+v-phi)) < EPS);
-        */
-        return t>=-ZERO && u<=ZERO && v<=ZERO;
+        if(t>=-ZERO && u<=ZERO && v<=ZERO)
+        {
+          assert(fabs(2*(sin(t)-cos(t))-u*sin(t)+sin(phi) - x) < EPS);
+          assert(fabs(-2*(sin(t)+cos(t))+u*cos(t)-cos(phi)+1 - y) < EPS);
+          assert(fabs(M(t+M_PI/2+v-phi)) < EPS);
+          return true;
+        }
       }
       return false;
     }
@@ -283,12 +297,15 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
         t = theta;
         u = 2. - rho;
         v = M(t + .5*M_PI - phi);
-        /*
-        assert(fabs(2*sin(t)-cos(t-v)-u*sin(t) - x) < EPS);
-        assert(fabs(-2*cos(t)-sin(t-v)+u*cos(t)+1 - y) < EPS);
-        assert(fabs(M(t+M_PI/2-v-phi)) < EPS);
-        */
-        return t>=-ZERO && u<=ZERO && v<=ZERO;
+        if(t>=-ZERO && u<=ZERO && v<=ZERO)
+        {
+          /*
+          assert(fabs(2*sin(t)-cos(t-v)-u*sin(t) - x) < EPS);
+          assert(fabs(-2*cos(t)-sin(t-v)+u*cos(t)+1 - y) < EPS);
+          assert(fabs(M(t+M_PI/2-v-phi)) < EPS);
+          */
+          return true;
+        }
       }
       return false;
     }
@@ -305,12 +322,13 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
         {
           t = M(atan2((4-u)*xi -2*eta, -2*xi + (u-4)*eta));
           v = M(t - phi);
-          /*
-          assert(fabs(4*sin(t)-2*cos(t)-u*sin(t)-sin(phi) - x) < EPS);
-          assert(fabs(-4*cos(t)-2*sin(t)+u*cos(t)+cos(phi)+1 - y) < EPS);
-          assert(fabs(M(t-v-phi)) < EPS);
-          */
-          return t>=-ZERO && v>=-ZERO;
+          if(t>=-ZERO && v>=-ZERO)
+          {
+            assert(fabs(4*sin(t)-2*cos(t)-u*sin(t)-sin(phi) - x) < EPS);
+            assert(fabs(-4*cos(t)-2*sin(t)+u*cos(t)+cos(phi)+1 - y) < EPS);
+            assert(fabs(M(t-v-phi)) < EPS);
+            return true;
+          }
         }
       }
       return false;
@@ -640,7 +658,7 @@ class reeds_shepp_c : public dynamical_system_c<state_c<3>, control_c<1>, reeds_
       traj.clear();
       */
 
-      float goal[3] = {0, -1, 179./180.*M_PI};
+      float goal[3] = {0, -1, 1/180.*M_PI};
       state_t sr(goal);
       reeds_shepp_path_c path = get_path(sr);
       cout<<"path type: ";
