@@ -317,12 +317,41 @@ int test_reeds_shepp()
   float size[3] = {25,25,2*M_PI};
   rrts.system.operating_region = region(zero, size);
 
-  float gc[3] = {0};
-  float gs[3] = {0,0,175./180.*M_PI};
+  float gc[3] = {0, -4, 0};
+  float gs[3] = {0.1, 0.1, 5./180.*M_PI};
   state goal_state(gc);
   rrts.system.goal_region = region(gc,gs);
  
-  rrts.system.test_extend_to();
+  //rrts.system.test_extend_to();
+  //
+  state origin(zero);
+  rrts.initialize(origin);
+
+  tt clock;
+  clock.tic();
+  int max_iterations = 1e4, diter=100;
+  trajectory traj;
+  for(int i=0; i<max_iterations; i++)
+  {
+    rrts.iteration();
+    if(i%diter == 0)
+    {
+      cout<<i<<" "<<rrts.get_best_cost().val[0]<<endl;
+
+      rrts.plot_tree();
+      rrts.plot_best_trajectory();
+      bot_lcmgl_switch_buffer(lcmgl);
+    }
+  }
+  cout<<"time: "<< clock.toc() <<" [ms]"<<endl;
+
+  rrts.plot_tree();
+  rrts.plot_best_trajectory();
+  bot_lcmgl_switch_buffer(lcmgl);
+  cout<<rrts.get_best_cost().val[0]<<endl;
+  
+  return 0;
+
   return 0;
 }
 

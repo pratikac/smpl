@@ -15,5 +15,6 @@
 #include "rrts.h"
 #include "dubins_velocity.h"
 #include "single_integrator.h"
+#include "rs.h"
 
 #endif //__/HOME/PRATIK/CODE/SMPL/SRC/SMPL.H__ 
