@@ -1,3 +1,5 @@
+add_definitions(-std=c++11)
+
 # Create a shared library lib${POD_NAME}.so with all source files
 file(GLOB cc_files *.cc) 
 file(GLOB cc_files *.c) 
@@ -5,10 +7,7 @@ file(GLOB cpp_files *.cpp)
 set(all_sources ${cpp_files} ${cc_files})
 add_library(${POD_NAME} SHARED ${all_sources})
 
-add_executable(test_main test_main.cpp kdtree.c)
-
-# c++11 experimental flags
-add_definitions(-std=c++0x)
+add_subdirectory(test)
 
 # uncomment these lines to link against another library via pkg-config
 #set(REQUIRED_PACKAGES pkg_a pkg_b)
@@ -16,13 +15,7 @@ add_definitions(-std=c++0x)
 
 set(REQUIRED_PACKAGES bot2-core bot2-lcmgl-client bot2-vis bot2-lcmgl-renderer)
 pods_use_pkg_config_packages(${POD_NAME} ${REQUIRED_PACKAGES})
-pods_use_pkg_config_packages(test_main ${REQUIRED_PACKAGES})
 
-# uncomment these lines to link against another library
-#set(REQUIRED_LIBS lib_a)
-#target_link_libraries (${POD_NAME} ${REQUIRED_LIBS})
-
-# install all headers to include/${POD_NAME}
 # make an aggregate header
 file(GLOB h_files *.h)
 file(GLOB hpp_files *.hpp)
