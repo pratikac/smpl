@@ -8,7 +8,7 @@ using namespace std;
 class dintdrift_optimization_data_c : public optimization_data_c
 {
   public:
-    float T;
+    double T;
     bool is_initialized;
 
     dintdrift_optimization_data_c() : is_initialized(false) {}
@@ -26,7 +26,7 @@ class dintdrift_c : public dynamical_system_c<state_c<4>, control_c<2>, dintdrif
     
     dintdrift_c() {}
     
-    int get_plotter_state(const state_t& s, float* ps)
+    int get_plotter_state(const state_t& s, double* ps)
     {
       ps[0] = s[0];
       ps[1] = s[1];
@@ -40,7 +40,7 @@ class dintdrift_c : public dynamical_system_c<state_c<4>, control_c<2>, dintdrif
       return 0;
     }
     
-    float evaluate_extend_cost(const state_t& si, const state_t& sf,
+    double evaluate_extend_cost(const state_t& si, const state_t& sf,
         dint_opt_data_t& opt_data)
     {
       if(opt_data.is_initialized)

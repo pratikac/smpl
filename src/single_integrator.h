@@ -16,7 +16,7 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
     typedef typename dynamical_system_t::trajectory_t trajectory_t;
     typedef optimization_data_c single_integrator_opt_data_t;
 
-    int normalize_diff(const state_t& s1, const state_t& s2, float factor, float* vout)
+    int normalize_diff(const state_t& s1, const state_t& s2, double factor, double* vout)
     {
       for(size_t i=0; i<N; i++)
         vout[i] = (s2.x[i]-s1.x[i])*factor;
@@ -24,11 +24,11 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
     }
 
 
-    float delta_distance;
+    double delta_distance;
 
     single_integrator_c() : delta_distance(0.05){};
 
-    int get_plotter_state(const state_t& s, float* ps)
+    int get_plotter_state(const state_t& s, double* ps)
     {
       int m = min(3,(int)N);
       for(int i=0; i<m; i++)
@@ -36,7 +36,7 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
       return 0;
     }
 
-    int sample_state(float* center, float* size, float* s)
+    int sample_state(double* center, double* size, double* s)
     {
       for(int i : range(0,N))
         s[i] = center[i] + (RANDF-0.5)*size[i];
@@ -47,13 +47,13 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
         trajectory_t& traj, single_integrator_opt_data_t& opt_data)
     {
       traj.clear();
-      float dist = evaluate_extend_cost(si, sf, opt_data);
+      double dist = evaluate_extend_cost(si, sf, opt_data);
       traj.total_variation = dist;
       traj.dt = delta_distance;     // assume velocity of 1 m/s
       int num_points = ceil(dist/delta_distance);
 
-      float step[N];
-      if(normalize_diff(si, sf, float(1.0/num_points), step)!=0)
+      double step[N];
+      if(normalize_diff(si, sf, double(1.0/num_points), step)!=0)
         return 1;
   
       traj.states.reserve(num_points+1);
@@ -66,7 +66,7 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
       return 0;
     }
 
-    float evaluate_extend_cost(const state_t& si, const state_t& sf,
+    double evaluate_extend_cost(const state_t& si, const state_t& sf,
         single_integrator_opt_data_t& opt_data)
     {
       return si.dist(sf);
@@ -75,9 +75,9 @@ class single_integrator_c : public dynamical_system_c<state_c<N>, control_c<N>, 
     void test_extend_to()
     {
       trajectory_t traj;
-      float zero[N] ={0};
+      double zero[N] ={0};
       state_t origin(zero);
-      float goal[N] = {10};
+      double goal[N] = {10};
       state_t sr(goal);
       sr.print(cout, "sampled:","\n");
 

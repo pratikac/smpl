@@ -15,7 +15,7 @@ class state_c
 {
   public:
     const static size_t N = N_t;
-    float x[N];
+    double x[N];
 
     state_c()
     {
@@ -27,7 +27,7 @@ class state_c
       for(size_t i=0; i<N; i++)
         x[i] = s.x[i];
     }
-    state_c(const float* sin)
+    state_c(const double* sin)
     {
       for(size_t i=0; i<N; i++)
         x[i] = sin[i];
@@ -56,7 +56,7 @@ class state_c
       return toret;
     }
 
-    float operator[](const size_t i) const 
+    double operator[](const size_t i) const 
     {
       assert((i < N) && (i >= 0));
       return x[i];
@@ -72,12 +72,12 @@ class state_c
         os<<suffix;
       return os;
     }
-    float dist(const state_c& s, bool only_xy=false) const
+    double dist(const state_c& s, bool only_xy=false) const
     {
       size_t len = N;
       if(only_xy)
         len = 2;
-      float t=0;
+      double t=0;
       for(size_t i=0; i<len; i++)
         t = t + SQ(x[i]-s.x[i]);
       return sqrt(t);
@@ -90,7 +90,7 @@ class control_c : public state_c<M>
   public:
     control_c() : state_c<M>() {}
     control_c(const control_c& c) : state_c<M>(c) {};
-    control_c(const float* cin) : state_c<M>(cin) {};
+    control_c(const double* cin) : state_c<M>(cin) {};
 };
 
 template<class state_t, class control_t>
@@ -99,9 +99,9 @@ class trajectory_c
   public:
     vector<state_t> states;
     vector<control_t> controls;
-    float total_variation;
-    float dt;
-    float t0;
+    double total_variation;
+    double dt;
+    double t0;
 
     trajectory_c() : total_variation(0), dt(0){}
     
@@ -175,7 +175,7 @@ class dynamical_system_c
     typedef opt_data_tt opt_data_t;
     typedef trajectory_c<state_t, control_t> trajectory_t;
 
-    int modulo_mpi_pi(float& th)
+    int modulo_mpi_pi(double& th)
     {
       while(th < -M_PI)
         th = th + 2*M_PI;
@@ -183,7 +183,7 @@ class dynamical_system_c
         th = th - 2*M_PI;
       return 0;
     }
-    int modulo_zero_2pi(float& th)
+    int modulo_zero_2pi(double& th)
     {
       while(th < 0)
         th = th + 2*M_PI;
@@ -192,12 +192,12 @@ class dynamical_system_c
       return 0;
     }
    
-    virtual int sample_state(float* center, float* size, float* s) = 0;
+    virtual int sample_state(double* center, double* size, double* s) = 0;
     
       virtual int extend_to(const state_t& si, const state_t& sf, trajectory_t& traj, opt_data_t& opt_data)=0;
-    virtual float evaluate_extend_cost(const state_t& si, const state_t& sf, opt_data_t& opt_data)=0;
+    virtual double evaluate_extend_cost(const state_t& si, const state_t& sf, opt_data_t& opt_data)=0;
     
-    virtual int get_plotter_state(const state_t& s, float* ps)=0;
+    virtual int get_plotter_state(const state_t& s, double* ps)=0;
     
     virtual void test_extend_to() = 0;
 };

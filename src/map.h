@@ -8,15 +8,15 @@ class map_c
     map_c() {}
     ~map_c() {}
 
-    virtual int sample_free_space(float[N])
+    virtual int sample_free_space(double[N])
     {
       return 1;
     }
-    virtual bool is_in_collision(const float[N])
+    virtual bool is_in_collision(const double[N])
     {
       return false;
     }
-    virtual float get_state_cost(const float s[N])
+    virtual double get_state_cost(const double s[N])
     { 
       return 0;
     }

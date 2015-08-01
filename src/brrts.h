@@ -41,7 +41,7 @@ class bvertex_c
 
     bvertex* child;
     state_t state;
-    float t0;
+    double t0;
     set<bvertex*> parents;
 
     int mark;
@@ -104,7 +104,7 @@ class bedge_c
 
     cost_t cost;
     opt_data_t opt_data;
-    float dt;
+    double dt;
 
     bedge_c()
     {
@@ -113,7 +113,7 @@ class bedge_c
       dt = 0;
     };
 
-    bedge_c(const state* si, const state* se, cost_t& c, float dt_in, opt_data_t& opt_data_in)
+    bedge_c(const state* si, const state* se, cost_t& c, double dt_in, opt_data_t& opt_data_in)
     {
       start_state = si;
       end_state = se;
@@ -148,8 +148,8 @@ class brrts_c
 
     int num_vertices;
     list<bvertex*> list_vertices;
-    float gamma;
-    float goal_sample_freq;
+    double gamma;
+    double goal_sample_freq;
     bool do_branch_and_bound;
 
     bvertex* root;
@@ -160,32 +160,32 @@ class brrts_c
 
     static int debug_counter;
     bot_lcmgl_t* lcmgl;
-    float points_color[4];
-    float points_size;
-    float lines_color[4];
-    float lines_width;
-    float best_lines_color[4];
-    float best_lines_width;
+    double points_color[4];
+    double points_size;
+    double lines_color[4];
+    double lines_width;
+    double best_lines_color[4];
+    double best_lines_width;
 
     brrts_c(){
       basic_initialization();
     }
    
-    void set_points_color(float* pc, float ps)
+    void set_points_color(double* pc, double ps)
     {
       for(int i : range(0,4))
         points_color[i] = pc[i];
       points_size = ps;
     }
     
-    void set_lines_color(float* lc, float lw)
+    void set_lines_color(double* lc, double lw)
     {
       for(int i : range(0,4))
         lines_color[i] = lc[i];
       lines_width = lw;
     }
 
-    void set_best_lines_color(float* blc, float blw)
+    void set_best_lines_color(double* blc, double blw)
     {
       for(int i : range(0,4))
         best_lines_color[i] = blc[i];
@@ -205,9 +205,9 @@ class brrts_c
       kdtree = NULL;
       num_vertices = 0;
   
-      float pc[4] = {1,1,0,0.9};
-      float lc[4] = {1,1,1,0.5};
-      float blc[4] = {1,0,0,0.8};
+      double pc[4] = {1,1,0,0.9};
+      double lc[4] = {1,1,1,0.5};
+      double blc[4] = {1,0,0,0.8};
       set_points_color(pc, 4);
       set_lines_color(lc, 1.5);
       set_best_lines_color(blc, 4);
@@ -265,19 +265,19 @@ class brrts_c
       return 0;
     }
 
-    int check_collision_trajectory(const trajectory_t& t1, const trajectory_t& t2, float dmax)
+    int check_collision_trajectory(const trajectory_t& t1, const trajectory_t& t2, double dmax)
     {
-      float dmin = FLT_MAX/2;
-      float t = min(t1.t0, t2.t0);
-      float dt = t1.dt;
-      float T = min(t1.t0 + t1.dt*t1.states.size(), t2.t0 + t2.dt*t2.states.size());
+      double dmin = FLT_MAX/2;
+      double t = min(t1.t0, t2.t0);
+      double dt = t1.dt;
+      double T = min(t1.t0 + t1.dt*t1.states.size(), t2.t0 + t2.dt*t2.states.size());
       
       int i = 0;
       while(t < T)
       {
         auto& s1 = t1.states[i];
         auto& s2 = t2.states[i];
-        float t3 = s1.dist(s2);
+        double t3 = s1.dist(s2);
         if(t3 < dmax)
           return true;
         
@@ -287,7 +287,7 @@ class brrts_c
       return false;
     }
         
-    int iteration(state* s_in = NULL, set<bvertex*>* rewired_vertices=NULL, trajectory_t* obstacle_trajectory=NULL, float collision_distance = 1)
+    int iteration(state* s_in = NULL, set<bvertex*>* rewired_vertices=NULL, trajectory_t* obstacle_trajectory=NULL, double collision_distance = 1)
     {
       last_added_bvertex = NULL;
 
@@ -296,7 +296,7 @@ class brrts_c
       if(!s_in)
       {
         int ret = 0;
-        float p = RANDF;
+        double p = RANDF;
         if(p < goal_sample_freq)
           ret = system.sample_in_goal(sr);
         else
@@ -345,9 +345,9 @@ class brrts_c
 
     int insert_into_kdtree(bvertex& v)
     {
-      float* key = new float[num_dim];
+      double* key = new double[num_dim];
       system.get_key(v.state, key);
-      kd_insertf(kdtree, key, &v);
+      kd_insert(kdtree, key, &v);
       delete[] key;
 
       list_vertices.push_back(&v);
@@ -392,11 +392,11 @@ class brrts_c
     int get_nearest_vertex(const state& s, bvertex*& nearest_vertex)
     {
       int toret = 0;
-      float* key = new float[num_dim];
+      double* key = new double[num_dim];
       system.get_key(s, key);
 
-      float rn = gamma*pow(log(num_vertices + 1.0)/(num_vertices+1.0), 1.0/(float)num_dim);
-      kdres_t* kdres = kd_nearestf(kdtree, key);
+      double rn = gamma*pow(log(num_vertices + 1.0)/(num_vertices+1.0), 1.0/(double)num_dim);
+      kdres_t* kdres = kd_nearest(kdtree, key);
       if(!kd_res_size(kdres))
         toret = 1;
       else
@@ -410,11 +410,11 @@ class brrts_c
     int get_near_vertices(const state& s, vector<bvertex*>& near_vertices)
     {
       int toret = 0;
-      float* key = new float[num_dim];
+      double* key = new double[num_dim];
       system.get_key(s, key);
 
-      float rn = gamma*pow(log(num_vertices + 1.0)/(num_vertices+1.0), 1.0/(float)num_dim);
-      kdres_t* kdres = kd_nearest_rangef(kdtree, key, rn);
+      double rn = gamma*pow(log(num_vertices + 1.0)/(num_vertices+1.0), 1.0/(double)num_dim);
+      kdres_t* kdres = kd_nearest_range(kdtree, key, rn);
 
       int num_near_vertices = kd_res_size(kdres);
       if(!num_near_vertices)
@@ -422,7 +422,7 @@ class brrts_c
         kd_res_free(kdres);
 
         // get nearest bvertex
-        kdres = kd_nearestf(kdtree, key);
+        kdres = kd_nearest(kdtree, key);
         if(kd_res_end(kdres))
           toret = 1;
         else
@@ -536,7 +536,7 @@ class brrts_c
         cost_t& bedge_cost = get<0>(bvertex_map[p.first]);
         if(!system.extend_to(si, v.state, check_obstacles,traj, opt_data))
         {
-          float edge_duration = system.dynamical_system.evaluate_extend_cost(si, v.state, opt_data);
+          double edge_duration = system.dynamical_system.evaluate_extend_cost(si, v.state, opt_data);
           best_child = &v;
           best_bedge = new bedge(&si, &(v.state), bedge_cost, edge_duration, opt_data);
           //cout<<"best_bedge.cost: "<< best_bedge.cost.val << endl;
@@ -586,7 +586,7 @@ class brrts_c
           if(system.extend_to(vn.state, v.state, check_obstacles, traj, opt_data))
             continue;
           
-          float en_dt = system.dynamical_system.evaluate_extend_cost(vn.state, v.state, opt_data);
+          double en_dt = system.dynamical_system.evaluate_extend_cost(vn.state, v.state, opt_data);
           bedge* en = new bedge(&(vn.state), &(v.state), cost_bedge, en_dt, opt_data);
           insert_bedge(vn, *en, v);
 
@@ -726,22 +726,22 @@ class brrts_c
       return 0;
     }
     
-    virtual void plot_trajectory(trajectory_t& traj, float* lc, float width)
+    virtual void plot_trajectory(trajectory_t& traj, double* lc, double width)
     {
       bot_lcmgl_color4f(lcmgl, lc[0], lc[1], lc[2], lc[3]);
       bot_lcmgl_line_width(lcmgl, width);
       bot_lcmgl_begin(lcmgl, GL_LINES);
       for(auto pts = traj.states.begin(); pts != traj.states.end(); pts++)
       {
-        float s2[3] = {0};
+        double s2[3] = {0};
         system.get_plotter_state(*pts, s2);
-        bot_lcmgl_vertex3f(lcmgl, s2[0], s2[1], s2[2]);
+        bot_lcmgl_vertex3d(lcmgl, s2[0], s2[1], s2[2]);
 
         auto npts = pts;
         npts++;
         if(npts != traj.states.end()){
           system.get_plotter_state(*npts, s2);
-          bot_lcmgl_vertex3f(lcmgl, s2[0], s2[1], s2[2]);
+          bot_lcmgl_vertex3d(lcmgl, s2[0], s2[1], s2[2]);
         }
       }
       bot_lcmgl_end(lcmgl);
@@ -754,12 +754,12 @@ class brrts_c
         return;
       for(auto& v : list_vertices)
       {
-        float s1[3] = {0};
+        double s1[3] = {0};
         system.get_plotter_state(v->state, s1);
         bot_lcmgl_color4f(lcmgl, points_color[0], points_color[1], points_color[2], points_color[3]);
         bot_lcmgl_point_size(lcmgl, points_size);
         bot_lcmgl_begin(lcmgl, GL_POINTS);
-        bot_lcmgl_vertex3f(lcmgl, s1[0], s1[1], s1[2]);
+        bot_lcmgl_vertex3d(lcmgl, s1[0], s1[1], s1[2]);
         bot_lcmgl_end(lcmgl);
         
         if(v->child){
@@ -784,14 +784,15 @@ class brrts_c
 
     void plot_region(region_t& r)
     {
-      float c[3] = {0};
-      float s[3] = {0};
+      double c[3] = {0};
+      double s[3] = {0};
+      float sf[3] = {0};
       r.get_plotter_state(c, s);
       bot_lcmgl_color4f(lcmgl, r.color[0], r.color[1], r.color[2], r.color[3]);
       double cd[3] = {0};
       for(int i=0; i<3; i++)
-        cd[i] = c[i];
-      bot_lcmgl_box(lcmgl, cd, s);
+        sf[i] = s[i];
+      bot_lcmgl_box(lcmgl, c, sf);
     }
 
     virtual void plot_environment()

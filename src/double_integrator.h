@@ -7,9 +7,9 @@
 class double_integrator_optimization_data_c : public optimization_data_c
 {
     public:
-        float T1, T2, T;
-        float ts1, ts2;
-        float u1, u2;
+        double T1, T2, T;
+        double ts1, ts2;
+        double u1, u2;
         bool is_initialized;
 
         double_integrator_optimization_data_c() : is_initialized(false) {}
@@ -25,10 +25,10 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         typedef typename dynamical_system_t::trajectory_t trajectory_t;
         typedef double_integrator_optimization_data_c double_integrator_opt_data_t;
 
-        float umm;
+        double umm;
         double_integrator_c() : umm(1) {}
 
-        int get_plotter_state(const state_t& s, float* ps)
+        int get_plotter_state(const state_t& s, double* ps)
         {
             ps[0] = s[0];
             ps[1] = s[1];
@@ -36,7 +36,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
             return 0;
         }
 
-        int sample_state(float* center, float* size, float* s)
+        int sample_state(double* center, double* size, double* s)
         {
             for(int i : range(0,4))
                 s[i] = center[i] + (RANDF-0.5)*size[i];
@@ -52,19 +52,19 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
             traj.clear();
             traj.total_variation = opt_data.T;
 
-            float si1[2] = {si[0], si[2]};
-            float sf1[2] = {sf[0], sf[2]};
-            float si2[2] = {si[1], si[3]};
-            float sf2[2] = {sf[1], sf[3]};
+            double si1[2] = {si[0], si[2]};
+            double sf1[2] = {sf[0], sf[2]};
+            double si2[2] = {si[1], si[3]};
+            double sf2[2] = {sf[1], sf[3]};
 
-            float T = opt_data.T, T1 = opt_data.T1, T2 = opt_data.T2;
-            float ts1, ts2;
-            float um = umm;
-            float u1, u2;
+            double T = opt_data.T, T1 = opt_data.T1, T2 = opt_data.T2;
+            double ts1, ts2;
+            double um = umm;
+            double u1, u2;
 
             if(!opt_data.is_initialized)
             {
-                float g = 1.0;
+                double g = 1.0;
                 // dim 2 needs to slow down
                 if( fabs(T-T1) < 1e-6)
                 {
@@ -97,7 +97,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
                 u1 = opt_data.u1;
                 u2 = opt_data.u2;
             }
-            float t = 0, dt = 0.1;
+            double t = 0, dt = 0.1;
             traj.dt = dt;
             state_t sc = si;
 
@@ -132,15 +132,15 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         }
 
         //use control g*um to reach origin from x0[2] in T time units
-        float get_f(const float x0[2], const float xf[2],
-                const float g, const float um, const float T)
+        double get_f(const double x0[2], const double xf[2],
+                const double g, const double um, const double T)
         {
-            float ts, u;
+            double ts, u;
             return get_time(x0, xf, fabs(g*um), u, ts) - T; 
         }
         
-        float get_gain(const float x0[2], const float xf[2], const float um,
-                const float T, const double eps=1e-6)
+        double get_gain(const double x0[2], const double xf[2], const double um,
+                const double T, const double eps=1e-6)
         {
             double g=0.5, gm=eps, gp=1-gm;
             double f, fm, fp;
@@ -187,10 +187,10 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         }
 
         // check to see if to right of switching curve
-        bool is_right(const float x0[2], const float xf[2], float um)
+        bool is_right(const double x0[2], const double xf[2], double um)
         {
             assert(um > 0);
-            float u = um;
+            double u = um;
             if(x0[1] > xf[1])
                 u = -um;
             if ( x0[0] - xf[0] - 1/2/u*(xf[1]*xf[1] - x0[1]*x0[1]) > 0)
@@ -199,42 +199,42 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         }
 
         // control is: 0 --u-- ts --(-u1)-- T
-        float get_time(const float x0[2], const float xf[2], const float um,
-                float& u, float& ts)
+        double get_time(const double x0[2], const double xf[2], const double um,
+                double& u, double& ts)
         {
             u = um;
             if(is_right(x0,xf,um))
                 u = -um;
 
-            float D = um*um*(x0[1]*x0[1] + xf[1]*xf[1] + \
+            double D = um*um*(x0[1]*x0[1] + xf[1]*xf[1] + \
                                 2*um*x0[0] - 2*um*xf[0]);
             if (D < 0)
                 return -1;
-            float sqD = sqrt(D);
+            double sqD = sqrt(D);
             ts = max((x0[1]*um - 0.7071*sqD)/um/um, (x0[1]*um + 0.7071*sqD)/um/um);
-            float T;
+            double T;
             T = max((x0[1]*um+ xf[1]*um - 1.4142*sqD)/um/um, (x0[1]*um+ xf[1]*u + 1.4142*sqD)/um/um);
             return T;
         }
 
-        float evaluate_extend_cost(const state_t& si, const state_t& sf,
+        double evaluate_extend_cost(const state_t& si, const state_t& sf,
                 double_integrator_opt_data_t& opt_data)
         {
             if(opt_data.is_initialized)
                 return opt_data.T;
 
-            float um=umm;
+            double um=umm;
 
-            const float si1[2] = {si[0], si[2]};
-            const float sf1[2] = {sf[0], sf[2]};
-            const float si2[2] = {si[1], si[3]};
-            const float sf2[2] = {sf[1], sf[3]};
-            float ts1, ts2;
-            float u1;
+            const double si1[2] = {si[0], si[2]};
+            const double sf1[2] = {sf[0], sf[2]};
+            const double si2[2] = {si[1], si[3]};
+            const double sf2[2] = {sf[1], sf[3]};
+            double ts1, ts2;
+            double u1;
 
-            float T1 = get_time(si1, sf1, um, u1, ts1);
-            float T2 = get_time(si2, sf2, um, u1, ts2);
-            float T = max(T1, T2);
+            double T1 = get_time(si1, sf1, um, u1, ts1);
+            double T2 = get_time(si2, sf2, um, u1, ts2);
+            double T = max(T1, T2);
             if(T < 0)
                 return -1;
             
@@ -255,9 +255,9 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
         {
             trajectory_t traj1, traj2;
 
-            float s1t[4] = {0};
+            double s1t[4] = {0};
             state_t s1(s1t);
-            float s2t[4] = {10, 10, 10, 10};
+            double s2t[4] = {10, 10, 10, 10};
             state_t s2(s2t);
             s2.print(cout, "sampled:","\n");
 
@@ -270,7 +270,7 @@ class double_integrator_c : public dynamical_system_c<state_c<4>, control_c<2>, 
             cout<<"first trajectory finished"<<endl;
             
             /*
-               float g2[4] = {12, 4, 1, -1};
+               double g2[4] = {12, 4, 1, -1};
                state_t sg2(g2);
                sg2.print(cout, "second goal:","\n");
 
