@@ -9,6 +9,7 @@ int main()
 {
     lcm_t *lcm          = bot_lcm_get_global(NULL);
     bot_lcmgl_t* lcmgl = bot_lcmgl_init(lcm, "plotter");
+    bot_lcmgl_line_width(lcmgl, 2.0);
     bot_lcmgl_switch_buffer(lcmgl);
 
     double r = 8;
@@ -22,7 +23,7 @@ int main()
         double L = 1.0;
 
         dubins_c dubins;
-        dubins.turning_radii[0] = r;
+        //dubins.turning_radii[0] = r;
 
         state_c<3> s0;
         for(int i=0; i< 3; i++)
@@ -56,9 +57,14 @@ int main()
         auto z0 = ap;
         auto zf = sf2;
 
+        //dubins.test_extend_to();
+        //exit(0);
+
         dubins_optimization_data_c opt_data;
-        trajectory_c<state_c<3>, control_c<1> > traj;
+        dubins_c::trajectory_t traj;
         dubins.extend_to(z0, zf, traj, opt_data);
+        
+        traj.print();
 
         bot_lcmgl_color4f(lcmgl, 1, 1, 0, 1);
         bot_lcmgl_point_size(lcmgl, 2);
@@ -66,12 +72,14 @@ int main()
         for(int i=0; i < traj.states.size(); i++)
         {
             auto c = traj.states[i];
-            bot_lcmgl_vertex3f(lcmgl, c.x[0], c.x[1], 0);
+            bot_lcmgl_vertex3d(lcmgl, c.x[0], c.x[1], 0);
             printf("c: (%f,%f)\n", c[0], c[1]);
         }
         bot_lcmgl_end(lcmgl);
         bot_lcmgl_switch_buffer(lcmgl);
-    
+   
+        traj.clear();
+
         /*
         bot_lcmgl_color4f(lcmgl, 0, 1, 0, 1);
         bot_lcmgl_text(lcmgl, s0.x, "s0");

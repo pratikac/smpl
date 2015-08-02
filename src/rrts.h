@@ -975,7 +975,7 @@ class rrts_c
             bot_lcmgl_color4f(lcmgl, r.color[0], r.color[1], r.color[2], r.color[3]);
             for(int i=0; i<3; i++)
                 sf[i] = s[i];
-            
+
             bot_lcmgl_box(lcmgl, c, sf);
         }
 

@@ -206,7 +206,7 @@ int test_dubins()
     double size[3] = {100,100,2*M_PI};
     rrts.system.operating_region = region(zero, size);
 
-    double gc[3] = {10,10,0};
+    double gc[3] = {10,10, M_PI/2. + 0.1};
     double gs[3] = {1,1,0.1*M_PI};
     state goal_state(gc);
     rrts.system.goal_region = region(gc,gs);
@@ -360,9 +360,9 @@ int main()
 
     //test_single_integrator();
     //test_double_integrator();
-    //test_dubins();
+    test_dubins();
     //test_brrts();
     //test_dubins_velocity();
-    test_reeds_shepp();
+    //test_reeds_shepp();
     return 0;
 };

@@ -30,7 +30,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
         dubins_c()
         {
             delta_distance = 0.05;
-            turning_radii[0] = 3.5;
+            turning_radii[0] = 10;
             //turning_radii[1] = 6;
             //turning_radii[2] = 8;
         };
@@ -74,7 +74,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
             }
             else
             {
-                double min_cost = FLT_MAX;
+                double min_cost = DBL_MAX;
 
                 int& best_turning_radius = opt_data.turning_radius;
                 best_turning_radius = -1;
@@ -93,7 +93,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
                         }
                     }
                 }
-                if((min_cost < 0) || (min_cost > FLT_MAX/2.0))
+                if((min_cost < 0) || (min_cost > DBL_MAX/2.0))
                     return -1;
                 return min_cost;
             }
@@ -325,7 +325,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
             times[3] = extend_dubins_spheres (si_right, sf_right, 4, turning_radius,
                     return_trajectory, traj);
 
-            double min_time = FLT_MAX/2;
+            double min_time = DBL_MAX/2.;
             int comb_min = -1;
             for (int i = 0; i < 4; i++) 
             {
@@ -347,7 +347,7 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
             trajectory_t traj;
             double zero[3] ={0};
             state_t origin(zero);
-            double goal[3] = {10, 5, 45/180*M_PI};
+            double goal[3] = {10, 0, 0};
             state_t sr(goal);
             sr.print(cout, "sampled:","\n");
 
