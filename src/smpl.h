@@ -6,6 +6,7 @@
 #include "kdtree.h"
 #include "single_integrator.h"
 #include "map.h"
+#include "dbs.h"
 #include "double_integrator.h"
 #include "dynamical_system.h"
 #include "dubins_velocity.h"

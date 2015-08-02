@@ -12,18 +12,18 @@ int main()
     bot_lcmgl_line_width(lcmgl, 2.0);
     bot_lcmgl_switch_buffer(lcmgl);
 
-    double r = 8;
+    double r = 10;
     double th = M_PI/4.;
     double eps = 0.1;
 
-    while(eps < th - 0.1)
+    while(eps < th - eps)
     {
         double sth = sin(th);
         double cth = cos(th);
         double L = 1.0;
 
-        dubins_c dubins;
-        //dubins.turning_radii[0] = r;
+        double turning_radii[] = {r};
+        dubins_c dubins(turning_radii, 1);
 
         state_c<3> s0;
         for(int i=0; i< 3; i++)
@@ -52,20 +52,15 @@ int main()
 
         sf2.x[0] = r;
         sf2.x[1] = r;
-        sf2.x[2] = 2*th + eps;
+        sf2.x[2] = 2*th;
 
         auto z0 = ap;
         auto zf = sf2;
-
-        //dubins.test_extend_to();
-        //exit(0);
 
         dubins_optimization_data_c opt_data;
         dubins_c::trajectory_t traj;
         dubins.extend_to(z0, zf, traj, opt_data);
         
-        traj.print();
-
         bot_lcmgl_color4f(lcmgl, 1, 1, 0, 1);
         bot_lcmgl_point_size(lcmgl, 2);
         bot_lcmgl_begin(lcmgl, GL_POINTS);
@@ -73,14 +68,13 @@ int main()
         {
             auto c = traj.states[i];
             bot_lcmgl_vertex3d(lcmgl, c.x[0], c.x[1], 0);
-            printf("c: (%f,%f)\n", c[0], c[1]);
+            //printf("c: (%f,%f)\n", c[0], c[1]);
         }
         bot_lcmgl_end(lcmgl);
         bot_lcmgl_switch_buffer(lcmgl);
    
         traj.clear();
 
-        /*
         bot_lcmgl_color4f(lcmgl, 0, 1, 0, 1);
         bot_lcmgl_text(lcmgl, s0.x, "s0");
         bot_lcmgl_text(lcmgl, a.x, "a");
@@ -89,7 +83,6 @@ int main()
         bot_lcmgl_text(lcmgl, bn.x, "bn");
         bot_lcmgl_text(lcmgl, sf.x, "sf");
         bot_lcmgl_text(lcmgl, sf2.x, "sf2");
-        */
 
         usleep(0.2e6);
         eps += 0.02;

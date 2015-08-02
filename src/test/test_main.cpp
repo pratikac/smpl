@@ -206,8 +206,8 @@ int test_dubins()
     double size[3] = {100,100,2*M_PI};
     rrts.system.operating_region = region(zero, size);
 
-    double gc[3] = {10,10, M_PI/2. + 0.1};
-    double gs[3] = {1,1,0.1*M_PI};
+    double gc[3] = {10, 10, M_PI/2. + 0.1};
+    double gs[3] = {1, 1, 0.01*M_PI};
     state goal_state(gc);
     rrts.system.goal_region = region(gc,gs);
 
@@ -216,7 +216,7 @@ int test_dubins()
 
     tt clock;
     clock.tic();
-    int max_iterations = 1e3, diter=max_iterations/10;
+    int max_iterations = 1e5, diter=max_iterations/1000;
     trajectory traj;
     for(int i=0; i<max_iterations; i++)
     {
