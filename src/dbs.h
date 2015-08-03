@@ -249,7 +249,7 @@ int dubins_LSR( double alpha, double beta, double d, double* outputs )
     double p    = sqrt(MAX(p_squared, 0));
     double tmp2 = atan2((-ca-cb), (d+sa+sb)) - atan2(-2.0, p);
     if(fabs(-ca-cb) < DUBINS_EPS)
-        tmp2 = 0;
+        tmp2 = -atan2(-2., p);
     double t    = dbsmod2pi(-alpha + tmp2);
     double q    = dbsmod2pi(-dbsmod2pi(beta) + tmp2);
     PACK_OUTPUTS(outputs);
