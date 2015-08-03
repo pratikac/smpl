@@ -14,9 +14,9 @@ int main()
 
     double r = 10;
     double th = M_PI/4.;
-    double eps = 0.1;
+    double eps = 0.02;
 
-    while(eps < th - eps)
+    while(eps < th - 0.1)
     {
         double sth = sin(th);
         double cth = cos(th);
@@ -71,7 +71,6 @@ int main()
             //printf("c: (%f,%f)\n", c[0], c[1]);
         }
         bot_lcmgl_end(lcmgl);
-        bot_lcmgl_switch_buffer(lcmgl);
    
         traj.clear();
 
@@ -84,7 +83,9 @@ int main()
         bot_lcmgl_text(lcmgl, sf.x, "sf");
         bot_lcmgl_text(lcmgl, sf2.x, "sf2");
 
+        printf("eps: %f\n", eps);
         usleep(0.2e6);
         eps += 0.02;
+        bot_lcmgl_switch_buffer(lcmgl);
     }
 };

@@ -23,8 +23,9 @@
 
 #include <math.h>
 #include <assert.h>
+#include <glib.h>
 
-#define EPSILON (10e-10)
+#define DEBUG       (1)
 
 #define LSL (0)
 #define LSR (1)
@@ -44,7 +45,6 @@
 #define EDUBPARAM     (2)   // Path parameterisitation error
 #define EDUBBADRHO    (3)   // the rho value is invalid
 #define EDUBNOPATH    (4)   // no connection between configurations with this word
-
 
 // The segment types for each of the Path types
 const int DIRDATA[][3] = {
@@ -105,23 +105,31 @@ outputs[2]  = q;
  */
 typedef int (*DubinsPathSamplingCallback)(double q[3], double t, void* user_data);
 
-/**
- * Floating point modulus suitable for rings
- *
- * fmod doesn't behave correctly for angular quantities, this function does
- */
-double fmodr( double x, double y)
+#define DUBINS_ZERO     (-1e-9)
+#define DUBINS_EPS      (1e-6)
+static double dbsmod2pi(double theta)
 {
-    return x - y*floor(x/y);
-}
-
-static double dbsmod2pi( double theta )
-{
-    return fmodr( theta, 2 * M_PI );
+    if(theta < 0 && theta > DUBINS_ZERO)
+        return 0;
+    return theta - 2*M_PI * floor(theta/2./M_PI);
 }
 
 int dubins_init_normalised( double alpha, double beta, double d, DubinsPath* path)
 {
+    if(d < DUBINS_EPS && fabs(alpha-beta) < DUBINS_EPS)
+    {
+        double params[3];
+        int err = dubins_words[0](0, 0, d, params);
+        if(err == EDUBOK)
+        {
+            path->param[0] = params[0];
+            path->param[1] = params[1];
+            path->param[2] = params[2];
+            path->type = 0;
+        }
+        return err;
+    }
+
     double best_cost = INFINITY;
     int    best_word;
     int    i;
@@ -134,6 +142,7 @@ int dubins_init_normalised( double alpha, double beta, double d, DubinsPath* pat
         if(err == EDUBOK)
         {
             double cost = params[0] + params[1] + params[2];
+            //printf("i: %d, cost: %f\n", i, cost);
             if(cost < best_cost)
             {
                 best_word = i;
@@ -159,22 +168,22 @@ int dubins_init(const double q0[3], const double q1[3], double rho, DubinsPath* 
     int i;
     double dx = q1[0] - q0[0];
     double dy = q1[1] - q0[1];
-    double D = sqrt( dx * dx + dy * dy );
+    double D = sqrt(dx * dx + dy * dy);
     double d = D / rho;
-    if( rho <= 0. )
+    if(rho <= 0.)
     {
         return EDUBBADRHO;
     }
-    double theta = dbsmod2pi(atan2( dy, dx ));
+    double theta = dbsmod2pi(atan2(dy, dx));
     double alpha = dbsmod2pi(q0[2] - theta);
     double beta  = dbsmod2pi(q1[2] - theta);
-    for( i = 0; i < 3; i ++ )
+    for(i = 0; i < 3; i ++)
     {
         path->qi[i] = q0[i];
     }
     path->rho = rho;
 
-    return dubins_init_normalised( alpha, beta, d, path );
+    return dubins_init_normalised(alpha, beta, d, path);
 }
 
 int dubins_LSL(double alpha, double beta, double d, double* outputs)
@@ -182,15 +191,22 @@ int dubins_LSL(double alpha, double beta, double d, double* outputs)
     UNPACK_INPUTS(alpha, beta);
     double tmp0 = d+sa-sb;
     double p_squared = 2 + (d*d) -(2*c_ab) + (2*d*(sa - sb));
-    if( p_squared < 0 )
+    if(p_squared < DUBINS_ZERO)
     {
         return EDUBNOPATH;
     }
-    double tmp1 = atan2( (cb-ca), tmp0 );
-    double t = dbsmod2pi(-alpha + tmp1 );
-    double p = sqrt( p_squared );
-    double q = dbsmod2pi(beta - tmp1 );
+    double tmp1 = atan2( (cb-ca), tmp0);
+    double t = dbsmod2pi(-alpha + tmp1);
+    double p = sqrt(MAX(p_squared, 0));
+    double q = dbsmod2pi(beta - tmp1);
     PACK_OUTPUTS(outputs);
+
+#if DEBUG
+    assert(fabs(p*cos(alpha + t) - sa + sb - d) < DUBINS_EPS);
+    assert(fabs(p*sin(alpha + t) + ca - cb) < DUBINS_EPS);
+    assert(dbsmod2pi(alpha + t + q - beta + .5 * DUBINS_EPS) < DUBINS_EPS);
+#endif
+
     return EDUBOK;
 }
 
@@ -199,14 +215,22 @@ int dubins_RSR( double alpha, double beta, double d, double* outputs )
     UNPACK_INPUTS(alpha, beta);
     double tmp0 = d-sa+sb;
     double p_squared = 2 + (d*d) -(2*c_ab) + (2*d*(sb-sa));
-    if( p_squared < 0 ) {
+    if(p_squared < DUBINS_ZERO)
+    {
         return EDUBNOPATH;
     }
-    double tmp1 = atan2( (ca-cb), tmp0 );
-    double t = dbsmod2pi( alpha - tmp1 );
-    double p = sqrt( p_squared );
-    double q = dbsmod2pi( -beta + tmp1 );
+    double tmp1 = atan2( (ca-cb), tmp0);
+    double t = dbsmod2pi( alpha - tmp1);
+    double p = sqrt(MAX(p_squared, 0));
+    double q = dbsmod2pi( -beta + tmp1);
     PACK_OUTPUTS(outputs);
+
+#if DEBUG
+    assert(fabs(p*cos(alpha - t) + sa - sb - d) < DUBINS_EPS);
+    assert(fabs(p*sin(alpha - t) - ca + cb) < DUBINS_EPS);
+    assert(dbsmod2pi(alpha - t - q - beta + .5 * DUBINS_EPS) < DUBINS_EPS);
+#endif
+
     return EDUBOK;
 }
 
@@ -214,15 +238,21 @@ int dubins_LSR( double alpha, double beta, double d, double* outputs )
 {
     UNPACK_INPUTS(alpha, beta);
     double p_squared = -2 + (d*d) + (2*c_ab) + (2*d*(sa+sb));
-    if( p_squared < 0 )
+    if(p_squared < DUBINS_ZERO)
     {
         return EDUBNOPATH;
     }
-    double p    = sqrt( p_squared );
-    double tmp2 = atan2( (-ca-cb), (d+sa+sb) ) - atan2(-2.0, p);
+    double p    = sqrt(MAX(p_squared, 0));
+    double tmp2 = atan2((-ca-cb), (d+sa+sb)) - atan2(-2.0, p);
     double t    = dbsmod2pi(-alpha + tmp2);
-    double q    = dbsmod2pi( -dbsmod2pi(beta) + tmp2 );
+    double q    = dbsmod2pi(-dbsmod2pi(beta) + tmp2);
     PACK_OUTPUTS(outputs);
+
+#if DEBUG
+    assert(fabs(p*cos(alpha + t) + 2. * sin(alpha + t) - sa - sb - d) < DUBINS_EPS);
+    assert(fabs(p*sin(alpha + t) - 2. * cos(alpha + t) + ca + cb) < DUBINS_EPS);
+    assert(dbsmod2pi(alpha + t - q - beta + .5 * DUBINS_EPS) < DUBINS_EPS);
+#endif
     return EDUBOK;
 }
 
@@ -230,15 +260,21 @@ int dubins_RSL( double alpha, double beta, double d, double* outputs )
 {
     UNPACK_INPUTS(alpha, beta);
     double p_squared = (d*d) -2 + (2*c_ab) - (2*d*(sa+sb));
-    if( p_squared< 0 )
+    if(p_squared < DUBINS_ZERO)
     {
         return EDUBNOPATH;
     }
-    double p    = sqrt( p_squared );
-    double tmp2 = atan2( (ca+cb), (d-sa-sb) ) - atan2(2.0, p);
+    double p    = sqrt(MAX(p_squared, 0));
+    double tmp2 = atan2((ca+cb), (d-sa-sb)) - atan2(2.0, p);
     double t    = dbsmod2pi(alpha - tmp2);
     double q    = dbsmod2pi(beta - tmp2);
     PACK_OUTPUTS(outputs);
+
+#if DEBUG
+    assert(fabs(p*cos(alpha - t) - 2. * sin(alpha - t) + sa + sb - d) < DUBINS_EPS);
+    assert(fabs(p*sin(alpha - t) + 2. * cos(alpha - t) - ca - cb) < DUBINS_EPS);
+    assert(dbsmod2pi(alpha - t + q - beta + .5 * DUBINS_EPS) < DUBINS_EPS);
+#endif
     return EDUBOK;
 }
 
@@ -250,10 +286,16 @@ int dubins_RLR( double alpha, double beta, double d, double* outputs )
     {
         return EDUBNOPATH;
     }
-    double p = dbsmod2pi( 2*M_PI - acos( tmp_rlr ) );
-    double t = dbsmod2pi(alpha - atan2( ca-cb, d-sa+sb ) + dbsmod2pi(p/2.));
+    double p = dbsmod2pi(2*M_PI - acos(tmp_rlr ));
+    double t = dbsmod2pi(alpha - atan2(ca-cb, d-sa+sb) + dbsmod2pi(p/2.));
     double q = dbsmod2pi(alpha - beta - t + dbsmod2pi(p));
-    PACK_OUTPUTS( outputs );
+    PACK_OUTPUTS(outputs);
+
+#if DEBUG
+    assert(fabs( 2.*sin(alpha - t + p) - 2. * sin(alpha - t) - d + sa - sb) < DUBINS_EPS);
+    assert(fabs(-2.*cos(alpha - t + p) + 2. * cos(alpha - t) - ca + cb) < DUBINS_EPS);
+    assert(dbsmod2pi(alpha - t + p - q - beta + .5 * DUBINS_EPS) < DUBINS_EPS);
+#endif
     return EDUBOK;
 }
 
@@ -265,10 +307,16 @@ int dubins_LRL( double alpha, double beta, double d, double* outputs )
     {
         return EDUBNOPATH;
     }
-    double p = dbsmod2pi( 2*M_PI - acos( tmp_lrl ) );
-    double t = dbsmod2pi(-alpha - atan2( ca-cb, d+sa-sb ) + p/2.);
+    double p = dbsmod2pi(2*M_PI - acos(tmp_lrl));
+    double t = dbsmod2pi(-alpha - atan2(ca-cb, d+sa-sb) + p/2.);
     double q = dbsmod2pi(dbsmod2pi(beta) - alpha -t + dbsmod2pi(p));
-    PACK_OUTPUTS( outputs );
+    PACK_OUTPUTS(outputs);
+
+#if DEBUG
+    assert(fabs(-2.*sin(alpha + t - p) + 2. * sin(alpha + t) - d - sa + sb) < DUBINS_EPS);
+    assert(fabs( 2.*cos(alpha + t - p) - 2. * cos(alpha + t) + ca - cb) < DUBINS_EPS);
+    assert(dbsmod2pi(alpha + t - p + q - beta + .5 * DUBINS_EPS) < DUBINS_EPS);
+#endif
     return EDUBOK;
 }
 
@@ -337,16 +385,19 @@ int dubins_path_sample( DubinsPath* path, double t, double q[3] )
     double p2 = path->param[1];
     double q1[3]; // end-of segment 1
     double q2[3]; // end-of segment 2
-    dubins_segment( p1,      qi,    q1, types[0] );
-    dubins_segment( p2,      q1,    q2, types[1] );
-    if( tprime < p1 ) {
-        dubins_segment( tprime, qi, q, types[0] );
+    dubins_segment(p1,      qi,    q1, types[0]);
+    dubins_segment(p2,      q1,    q2, types[1]);
+    if(tprime < p1)
+    {
+        dubins_segment( tprime, qi, q, types[0]);
     }
-    else if( tprime < (p1+p2) ) {
-        dubins_segment( tprime-p1, q1, q,  types[1] );
+    else if(tprime < (p1+p2))
+    {
+        dubins_segment(tprime-p1, q1, q, types[1]);
     }
-    else {
-        dubins_segment( tprime-p1-p2, q2, q,  types[2] );
+    else
+    {
+        dubins_segment(tprime-p1-p2, q2, q, types[2]);
     }
 
     // scale the target configuration, translate back to the original starting point
@@ -357,16 +408,16 @@ int dubins_path_sample( DubinsPath* path, double t, double q[3] )
     return 0;
 }
 
-int dubins_path_sample_many( DubinsPath* path, DubinsPathSamplingCallback cb, double stepSize, void* user_data )
+int dubins_path_sample_many(DubinsPath* path, DubinsPathSamplingCallback cb, double stepSize, void* user_data)
 {
     double x = 0.0;
     double length = dubins_path_length(path);
-    while( x <  length )
+    while(x <  length)
     {
         double q[3];
-        dubins_path_sample( path, x, q );
+        dubins_path_sample(path, x, q);
         int retcode = cb(q, x, user_data);
-        if( retcode != 0 )
+        if(retcode != 0)
         {
             return retcode;
         }
@@ -377,8 +428,8 @@ int dubins_path_sample_many( DubinsPath* path, DubinsPathSamplingCallback cb, do
 
 int dubins_path_endpoint( DubinsPath* path, double q[3] )
 {
-    // TODO - introduce a new constant rather than just using EPSILON
-    return dubins_path_sample( path, dubins_path_length(path) - EPSILON, q );
+    // TODO - introduce a new constant rather than just using DUBINS_EPS
+    return dubins_path_sample( path, dubins_path_length(path) - DUBINS_EPS, q );
 }
 
 int dubins_extract_subpath( DubinsPath* path, double t, DubinsPath* newpath )
