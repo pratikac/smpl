@@ -196,6 +196,8 @@ int dubins_LSL(double alpha, double beta, double d, double* outputs)
         return EDUBNOPATH;
     }
     double tmp1 = atan2( (cb-ca), tmp0);
+    if(fabs(cb-ca) < DUBINS_EPS)
+        tmp1 = 0;
     double t = dbsmod2pi(-alpha + tmp1);
     double p = sqrt(MAX(p_squared, 0));
     double q = dbsmod2pi(beta - tmp1);
@@ -219,7 +221,9 @@ int dubins_RSR( double alpha, double beta, double d, double* outputs )
     {
         return EDUBNOPATH;
     }
-    double tmp1 = atan2( (ca-cb), tmp0);
+    double tmp1 = atan2((ca-cb), tmp0);
+    if(fabs(cb-ca) < DUBINS_EPS)
+        tmp1 = 0;
     double t = dbsmod2pi( alpha - tmp1);
     double p = sqrt(MAX(p_squared, 0));
     double q = dbsmod2pi( -beta + tmp1);
@@ -244,6 +248,8 @@ int dubins_LSR( double alpha, double beta, double d, double* outputs )
     }
     double p    = sqrt(MAX(p_squared, 0));
     double tmp2 = atan2((-ca-cb), (d+sa+sb)) - atan2(-2.0, p);
+    if(fabs(-ca-cb) < DUBINS_EPS)
+        tmp2 = 0;
     double t    = dbsmod2pi(-alpha + tmp2);
     double q    = dbsmod2pi(-dbsmod2pi(beta) + tmp2);
     PACK_OUTPUTS(outputs);
@@ -266,6 +272,8 @@ int dubins_RSL( double alpha, double beta, double d, double* outputs )
     }
     double p    = sqrt(MAX(p_squared, 0));
     double tmp2 = atan2((ca+cb), (d-sa-sb)) - atan2(2.0, p);
+    if(fabs(ca + cb) < DUBINS_EPS)
+        tmp2 = 0 - atan2(2.0, p);
     double t    = dbsmod2pi(alpha - tmp2);
     double q    = dbsmod2pi(beta - tmp2);
     PACK_OUTPUTS(outputs);
@@ -286,8 +294,11 @@ int dubins_RLR( double alpha, double beta, double d, double* outputs )
     {
         return EDUBNOPATH;
     }
+    double tmp1 = atan2(ca-cb, d-sa+sb);
+    if(fabs(ca - cb) < DUBINS_EPS)
+        tmp1 = 0;
     double p = dbsmod2pi(2*M_PI - acos(tmp_rlr ));
-    double t = dbsmod2pi(alpha - atan2(ca-cb, d-sa+sb) + dbsmod2pi(p/2.));
+    double t = dbsmod2pi(alpha - tmp1 + dbsmod2pi(p/2.));
     double q = dbsmod2pi(alpha - beta - t + dbsmod2pi(p));
     PACK_OUTPUTS(outputs);
 
@@ -307,8 +318,11 @@ int dubins_LRL( double alpha, double beta, double d, double* outputs )
     {
         return EDUBNOPATH;
     }
+    double tmp1 = atan2(ca-cb, d+sa-sb);
+    if(fabs(ca-cb) < DUBINS_EPS)
+        tmp1 = 0;
     double p = dbsmod2pi(2*M_PI - acos(tmp_lrl));
-    double t = dbsmod2pi(-alpha - atan2(ca-cb, d+sa-sb) + p/2.);
+    double t = dbsmod2pi(-alpha - tmp1 + p/2.);
     double q = dbsmod2pi(dbsmod2pi(beta) - alpha -t + dbsmod2pi(p));
     PACK_OUTPUTS(outputs);
 

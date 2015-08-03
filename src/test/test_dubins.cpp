@@ -16,7 +16,7 @@ int main()
     double th = M_PI/4.;
     double eps = 0.02;
 
-    while(eps < th - 0.1)
+    while(eps < th - 0.02)
     {
         double sth = sin(th);
         double cth = cos(th);
@@ -52,7 +52,7 @@ int main()
 
         sf2.x[0] = r;
         sf2.x[1] = r;
-        sf2.x[2] = 2*th;
+        sf2.x[2] = 2*th + 0.01;
 
         auto z0 = ap;
         auto zf = sf2;
