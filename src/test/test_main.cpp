@@ -210,6 +210,7 @@ int test_dubins()
     double gs[3] = {1, 1, 0.01*M_PI};
     state goal_state(gc);
     rrts.system.goal_region = region(gc,gs);
+    rrts.goal_sample_freq = 0.3;
 
     state origin(zero);
     rrts.initialize(origin);

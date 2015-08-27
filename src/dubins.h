@@ -31,13 +31,21 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
 
         dubins_c()
         {
-            num_turning_radii = 1;
-            turning_radii.reserve(num_turning_radii);
 
             delta_distance = 0.05;
-            turning_radii[0] = 10;
-            //turning_radii[1] = 6;
-            //turning_radii[2] = 8;
+#if 1
+            num_turning_radii = 5;
+            turning_radii.reserve(num_turning_radii);
+            turning_radii[0] = 8;
+            turning_radii[1] = 12;
+            turning_radii[2] = 14;
+            turning_radii[3] = 16;
+            turning_radii[4] = 20;
+#else
+            num_turning_radii = 1;
+            turning_radii.reserve(num_turning_radii);
+            turning_radii[0] = 8;
+#endif
         };
         
         dubins_c(double* radii, int num_tr_)
@@ -131,10 +139,11 @@ class dubins_c : public dynamical_system_c<state_c<3>, control_c<1>, dubins_opti
                     
                     DubinsPath path;
                     dubins_init(si.x, sf.x, tr, &path);
-                    double cost = dubins_path_length(&path);
+                    double T = dubins_path_length(&path);
 
-                    if(cost > 0)
+                    if(T > 0)
                     {
+                        double cost = T*(1+0.1/tr);
                         if(cost < min_cost)
                         {
                             min_cost = cost;

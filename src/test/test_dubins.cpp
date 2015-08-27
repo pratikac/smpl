@@ -12,7 +12,7 @@ int main()
     bot_lcmgl_line_width(lcmgl, 2.0);
     bot_lcmgl_switch_buffer(lcmgl);
 
-    double r = 10;
+    double r = 8;
     double th = M_PI/4.;
     double eps = 0.02;
 
@@ -21,10 +21,13 @@ int main()
         double sth = sin(th);
         double cth = cos(th);
         double L = 1.0;
-
-        double turning_radii[] = {r};
+#if 1
+        double turning_radii[] = {8, 12, 14, 16, 18};
+        dubins_c dubins(turning_radii, 5);
+#else
+        double turning_radii[] = {8};
         dubins_c dubins(turning_radii, 1);
-
+#endif
         state_c<3> s0;
         for(int i=0; i< 3; i++)
             s0.x[i] = 0;
@@ -59,8 +62,11 @@ int main()
 
         dubins_optimization_data_c opt_data;
         dubins_c::trajectory_t traj;
+        tt clock;
+        clock.tic();
         dubins.extend_to(z0, zf, traj, opt_data);
-        
+        cout<<"dt: "<< clock.toc() <<" [ms]"<<endl;
+
         bot_lcmgl_color4f(lcmgl, 1, 1, 0, 1);
         bot_lcmgl_point_size(lcmgl, 2);
         bot_lcmgl_begin(lcmgl, GL_POINTS);
